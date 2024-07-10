@@ -14,9 +14,11 @@ def get_api_url():
 
 def read_api_sofascore(url, selenium = True):
     if selenium:
-        driver = webdriver.Chrome(ChromeDriverManager().install())
+        options = webdriver.ChromeOptions()     
+        options.headless = True
+        driver = webdriver.Chrome(ChromeDriverManager().install(), options= options)
         driver.implicitly_wait(15)
-        driver.maximize_window()
+        driver.minimize_window()
         driver.get(url)
         element = driver.find_element(By.CSS_SELECTOR, "pre")
         response_json = json.loads(element.text)
