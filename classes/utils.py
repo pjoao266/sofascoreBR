@@ -12,7 +12,7 @@ import json
 def get_api_url():
     return API_SCANTRACK_URL
 
-def read_api_sofascore(url, selenium = True):
+def read_api_sofascore(url, selenium = True, error_stop = False):
     if selenium:
         options = webdriver.ChromeOptions()     
         options.headless = True
@@ -27,5 +27,8 @@ def read_api_sofascore(url, selenium = True):
          response_json = requests.get(url).json()
     if 'error' in response_json and len(response_json) == 1:
         print('Erro:', response_json['error']['message'])
-        sys.exit()
+        if error_stop == True:
+            sys.exit()
+        else:
+            response_json = None
     return response_json

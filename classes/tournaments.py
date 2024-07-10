@@ -68,11 +68,13 @@ class Tournament:
                 evento_i = Event(event_id)
                 jogos[event_id] = evento_i
         self.jogos = jogos
+
     def get_table_of_events(self):
         table = pd.DataFrame()
         for key, value in self.jogos.items():
             table = pd.concat([table, pd.DataFrame(value.match_info, index=[0])])
-        return table      
+        return table  
+    
     def run(self):
         print('Pegando informações do torneio...')
         self.get_season_by_year(self.year)

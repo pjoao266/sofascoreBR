@@ -52,31 +52,31 @@ class Event:
             return None
         else:
             url = get_api_url() + f'event/{self.id}/statistics'
-            statistics_teams = read_api_sofascore(url, selenium=True)
-            statistics_teams = statistics_teams['statistics']
-            stats = {}
-            home_stats = {'id': self.home_team.id, 'id_event': self.id, 'field':  'home'}
-            away_stats = {'id': self.away_team.id, 'id_event': self.id, 'field':  'away'}
-            for stat in statistics_teams:
-                period = stat['period']
-                home_period_stats = {}
-                away_period_stats = {}
-                groups = stat.get('groups', [])
-                for group in groups:
-                    statistics_items = group.get('statisticsItems', [])
-                    for item in statistics_items:
-                        name = item.get('key')
-                        home_value = item.get('homeValue')
-                        away_value = item.get('awayValue')
-                        
-                        home_period_stats[name] = home_value
-                        away_period_stats[name] = away_value
-                home_stats[period] = home_period_stats
-                away_stats[period] = away_period_stats
-            teams_stats = {}
-            teams_stats[home_stats['id']] = home_stats
-            teams_stats[away_stats['id']] = away_stats
-            self.teams_stats = teams_stats
+            statistics_teams = read_api_sofascore(url, selenium=True, error_stop = False)
+            if statistics_teams != None:
+                statistics_teams = statistics_teams['statistics']
+                home_stats = {'id': self.home_team.id, 'id_event': self.id, 'field':  'home'}
+                away_stats = {'id': self.away_team.id, 'id_event': self.id, 'field':  'away'}
+                for stat in statistics_teams:
+                    period = stat['period']
+                    home_period_stats = {}
+                    away_period_stats = {}
+                    groups = stat.get('groups', [])
+                    for group in groups:
+                        statistics_items = group.get('statisticsItems', [])
+                        for item in statistics_items:
+                            name = item.get('key')
+                            home_value = item.get('homeValue')
+                            away_value = item.get('awayValue')
+                            
+                            home_period_stats[name] = home_value
+                            away_period_stats[name] = away_value
+                    home_stats[period] = home_period_stats
+                    away_stats[period] = away_period_stats
+                teams_stats = {}
+                teams_stats[home_stats['id']] = home_stats
+                teams_stats[away_stats['id']] = away_stats
+                self.teams_stats = teams_stats
 
     def get_players_statistics_event(self):
         print('Pegando estatísticas dos jogadores do jogo...')
@@ -84,39 +84,40 @@ class Event:
             return None
         else:
             url = get_api_url() + f'event/{self.id}/lineups'
-            statistics_players = read_api_sofascore(url, selenium=True)
-            statistics_players_home = statistics_players['home']['players']
-            statistics_players_away = statistics_players['away']['players']
-            players_statistics = {}
-            for player in statistics_players_home:
-                player_i = {}
-                has_minute_played = False
-                player_i['id'] = player['player']['id']
-                player_i['field'] = 'home' 
-                player_i['id_team'] = self.home_team.id
-                player_i['id_event'] = self.id
-                for key, value in player['statistics'].items():
-                    if key != 'ratingVersions':
-                        player_i[key] = value
-                    if key == 'minutesPlayed':
-                        has_minute_played = True
-                if has_minute_played:
-                    players_statistics[player_i['id']] = player_i
-            for player in statistics_players_away:
-                player_i = {}
-                has_minute_played = False
-                player_i['id'] = player['player']['id']
-                player_i['field'] = 'away' 
-                player_i['id_team'] = self.away_team.id
-                player_i['id_event'] = self.id
-                for key, value in player['statistics'].items():
-                    if key != 'ratingVersions':
-                        player_i[key] = value
-                    if key == 'minutesPlayed':
-                        has_minute_played = True
-                if has_minute_played:
-                    players_statistics[player_i['id']] = player_i
-            self.players_statistics = players_statistics
+            statistics_players = read_api_sofascore(url, selenium=True, error_stop = False)
+            if statistics_players != None:
+                statistics_players_home = statistics_players['home']['players']
+                statistics_players_away = statistics_players['away']['players']
+                players_statistics = {}
+                for player in statistics_players_home:
+                    player_i = {}
+                    has_minute_played = False
+                    player_i['id'] = player['player']['id']
+                    player_i['field'] = 'home' 
+                    player_i['id_team'] = self.home_team.id
+                    player_i['id_event'] = self.id
+                    for key, value in player['statistics'].items():
+                        if key != 'ratingVersions':
+                            player_i[key] = value
+                        if key == 'minutesPlayed':
+                            has_minute_played = True
+                    if has_minute_played:
+                        players_statistics[player_i['id']] = player_i
+                for player in statistics_players_away:
+                    player_i = {}
+                    has_minute_played = False
+                    player_i['id'] = player['player']['id']
+                    player_i['field'] = 'away' 
+                    player_i['id_team'] = self.away_team.id
+                    player_i['id_event'] = self.id
+                    for key, value in player['statistics'].items():
+                        if key != 'ratingVersions':
+                            player_i[key] = value
+                        if key == 'minutesPlayed':
+                            has_minute_played = True
+                    if has_minute_played:
+                        players_statistics[player_i['id']] = player_i
+                self.players_statistics = players_statistics
 
     def get_shotmap_event(self):
         print('Pegando informações do shotmap do jogo...')
@@ -124,49 +125,62 @@ class Event:
             return None
         else:
             url = get_api_url() + f'event/{self.id}/shotmap'
-            shotmap = read_api_sofascore(url, selenium=True)['shotmap']
-            shotmap_info = {}
-            for shot in shotmap:
-                isHome = shot['isHome']
-                id_player = shot['player']['id']
-                if isHome:
-                    id_team = self.home_team.id
-                else:
-                    id_team = self.away_team.id
-                id_event = self.id
-                xg = shot['xg']
-                shotType = shot['shotType']
-                if shotType in ['goal','save']:
+            shotmap = read_api_sofascore(url, selenium=True, error_stop = False)['shotmap']
+            if shotmap != None:
+                shotmap_info = {}
+                for shot in shotmap:
+                    id_player = shot['player']['id']
+                    id_event = self.id
+                    
+                    isHome = shot['isHome']
+                    
+                    if isHome:
+                        id_team = self.home_team.id
+                    else:
+                        id_team = self.away_team.id
+                   
+                    metrics = ['isHome','xg', 'shotType', 'xgot', 'goalMouthLocation', 'situation', 'time', 'addedTime', 'bodyPart',
+                               'playerCoordinates', 'goalType']
+                    for metric in metrics:
+                        if metric not in shot:
+                            if metric == 'addedTime':
+                                shot[metric] = 0
+                            elif metric == 'goalType':
+                                shot[metric] = 'normal'
+                            else:
+                                shot[metric] = None
+
+                    xg = shot['xg']
+                    shotType = shot['shotType']
+                    bodypart = shot['bodyPart']
                     xgot = shot['xgot']
+                    goalType = shot['goalType']
+
                     goalMouthLocation = shot['goalMouthLocation']
-                else:
-                    xgot = None
-                    goalMouthLocation = None
-                
-                situation = shot['situation']
-                time = shot['time']
-                if 'addedTime' in shot:
+                    situation = shot['situation']
+                    time = shot['time']
                     addedTime = shot['addedTime']
-                else:
-                    addedTime = 0
-                bodypart = shot['bodyPart']
-                if time > 45:
-                    period = '2ND'
-                else:
-                    period = '1ST'
-                time = time + addedTime
-                playerCoordinates = shot['playerCoordinates']
-                box_coords = {'x':{'start': 0, 'end': 17},
-                            'y':{'start': 21, 'end': 79}}
-                if playerCoordinates['x'] >= box_coords['x']['start'] and playerCoordinates['x'] <= box_coords['x']['end'] and playerCoordinates['y'] >= box_coords['y']['start'] and playerCoordinates['y'] <= box_coords['y']['end']:
-                    box = True
-                else:
-                    box = False
-                shotmap_info[shot['id']] = {'id': id_player, 'id_team': id_team, 'id_event': id_event,
-                                        'shotType': shotType,'xg': xg, 'xgot': xgot, 'situation': situation, 'bodypart': bodypart,
-                                            'playerCoordinates': playerCoordinates, 'inBox':box, 'goalMouthLocation': goalMouthLocation,
-                                            'time': time, 'period': period}
-            self.shotmap_info = shotmap_info
+
+                    
+                    if time > 45:
+                        period = '2ND'
+                    else:
+                        period = '1ST'
+                    time = time + addedTime
+
+                    playerCoordinates = shot['playerCoordinates']
+                    box_coords = {'x':{'start': 0, 'end': 17},
+                                'y':{'start': 21, 'end': 79}}
+                    if playerCoordinates['x'] >= box_coords['x']['start'] and playerCoordinates['x'] <= box_coords['x']['end'] and playerCoordinates['y'] >= box_coords['y']['start'] and playerCoordinates['y'] <= box_coords['y']['end']:
+                        box = True
+                    else:
+                        box = False
+                        
+                    shotmap_info[shot['id']] = {'id': id_player, 'id_team': id_team, 'id_event': id_event,
+                                            'shotType': shotType, 'goalType': goalType,'xg': xg, 'xgot': xgot, 'situation': situation, 'bodypart': bodypart,
+                                                'playerCoordinates': playerCoordinates, 'inBox':box, 'goalMouthLocation': goalMouthLocation,
+                                                'time': time, 'period': period}
+                self.shotmap_info = shotmap_info
 
     def __str__(self):
         return f'Jogo: {self.home_team.name} x {self.away_team.name} - {self.rodada}ª rodada - ID: {self.id}'

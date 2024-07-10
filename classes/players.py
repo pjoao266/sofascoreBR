@@ -1,27 +1,16 @@
 class Player:
-    def __init__(self, id, name, shortName, teamId, tournamentId, seasonId, position):
+    def __init__(self, id):
         self.id = id
-        self.name = name
-        self.shortName = shortName
-        self.teamId = teamId
-        self.tournamentId = tournamentId
-        self.seasonId = seasonId
-        self.position = position
         self.get_info_players()
 
     def get_info_players(self):
         url = get_api_url() + f"player/{self.id}"
         dados_players = read_api_sofascore(url, selenium=False)
         dados_players = dados_players['player']
-        if self.name == None:
-            self.name = dados_players['name']
-            self.shortName = dados_players['shortName']
-            self.teamId = dados_players['team']['id']
-            self.tournamentId = dados_players['team']['primaryUniqueTournament']['id']
-            torneio = Tournament(id = self.tournamentId, year = None)
-            max_year_season = torneio.df_seasons['year'].max()
-            self.season_id = torneio.df_seasons[torneio.df_seasons['year'] == max_year_season]['id'].values[0]
-            self.position = dados_players['position']
+        self.name = dados_players['name']
+        self.shortName = dados_players['shortName']
+        self.teamId = dados_players['team']['id']
+        self.position = dados_players['position']
 
         if 'height' in dados_players:
             self.height = dados_players['height']
