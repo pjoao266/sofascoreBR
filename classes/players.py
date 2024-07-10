@@ -1,9 +1,3 @@
-from classes.utils import get_api_url, read_api_sofascore # Import the get_api_url function from vars/global.py
-from datetime import datetime
-import requests # Import the requests module
-from classes.tournaments import Tournament
-import pandas as pd
-
 class Player:
     def __init__(self, id, name, shortName, teamId, tournamentId, seasonId, position):
         self.id = id

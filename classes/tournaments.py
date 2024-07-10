@@ -1,18 +1,9 @@
-from classes.utils import get_api_url, read_api_sofascore # Import the get_api_url function from vars/global.py
-import requests # Import the requests module
-import pandas as pd
-from classes.teams import Team
-
-
 class Tournament:
     def __init__(self, id, year):
         self.id = id
         self.year = year
         self.get_tournament()
         self.get_tournament_seasons()
-        self.get_season_by_year(self.year)
-        self.get_teams_tournament()
-        self.get_standings()
 
     def get_tournament(self):
         url = get_api_url() + 'unique-tournament/{id}'.format(id=self.id)
@@ -37,7 +28,7 @@ class Tournament:
     def get_teams_tournament(self):
         teams = dict()
         for team in self.season_info['teams']:
-            teams[team['id']] = Team(team['id'], team['name'], self.id, self.season_id)
+            teams[team['id']] = Team(team['id'], self.id, self.season_id)
         self.teams = teams
     
     def get_standings(self):
@@ -61,7 +52,35 @@ class Tournament:
                                                 columns=['id', 'team', 'position', 'points', 'matches'])
             statitics_table = pd.concat([statitics_table, statitics_table_time])
         self.standing = statitics_table.sort_values('position', ascending=True)       
-        
+    def get_events_rodada(self, rodada):
+        url = get_api_url() + f'unique-tournament/{self.id}/season/{self.season_id}/events/round/{rodada}'
+        events = read_api_sofascore(url, selenium=False)
+        jogos_rodada = events['events']
+        return jogos_rodada
+    
+    def get_events(self):
+        jogos = dict()
+        for i in range(38):
+            rodada = i + 1
+            jogos_rodada = self.get_events_rodada(rodada)
+            for event in jogos_rodada:
+                event_id = event['id']
+                evento_i = Event(event_id)
+                jogos[event_id] = evento_i
+        self.jogos = jogos
+    def get_table_of_events(self):
+        table = pd.DataFrame()
+        for key, value in self.jogos.items():
+            table = pd.concat([table, pd.DataFrame(value.match_info, index=[0])])
+        return table      
+    def run(self):
+        print('Pegando informações do torneio...')
+        self.get_season_by_year(self.year)
+        self.get_teams_tournament()
+        print('Calculando tabela do torneio...')
+        self.get_standings()
+        print('Pegando informações de eventos do torneio...')
+        self.get_events()
+
     def __str__(self) -> str:
         return f'Tournament: {self.name} - Country: {self.country} - Year: {self.year}'
-            
