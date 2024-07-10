@@ -10,10 +10,9 @@ class Tournament:
         self.year = year
         self.get_tournament()
         self.get_tournament_seasons()
-        #self.get_season_by_year(self.year)
-        #self.get_teams_tournament()
-        #self.get_standings()
-        #self.create_table_statistics_teams()
+        self.get_season_by_year(self.year)
+        self.get_teams_tournament()
+        self.get_standings()
 
     def get_tournament(self):
         url = get_api_url() + 'unique-tournament/{id}'.format(id=self.id)
@@ -45,6 +44,7 @@ class Tournament:
         url = get_api_url() + f'unique-tournament/{self.id}/season/{self.season_id}/standings/total'
         standings = read_api_sofascore(url)
         standings = standings['standings'][0]['rows']
+        statitics_table = pd.DataFrame()
         for time in standings:
             time_id = time['team']['id']
             time_position = time['position']
@@ -55,17 +55,12 @@ class Tournament:
             team_brasileirao.points = time_points
             team_brasileirao.position = time_position
             team_brasileirao.matches = time_jogos
-    
-    def create_table_statistics_teams(self):
-        statitics_table = pd.DataFrame()
-        for time in self.teams.values():
-            statitics_table_time = pd.DataFrame([(time.id, time.name, time.position, time.points, time.matches)],
+            statitics_table_time = pd.DataFrame([(team_brasileirao.id, team_brasileirao.name,
+                                                team_brasileirao.position, team_brasileirao.points,
+                                                team_brasileirao.matches)],
                                                 columns=['id', 'team', 'position', 'points', 'matches'])
-            
-            for key, value in time.statistics.items():
-                statitics_table_time[key] = value
             statitics_table = pd.concat([statitics_table, statitics_table_time])
-        self.statitics_table = statitics_table.sort_values('position', ascending=True)      
+        self.standing = statitics_table.sort_values('position', ascending=True)       
         
     def __str__(self) -> str:
         return f'Tournament: {self.name} - Country: {self.country} - Year: {self.year}'
