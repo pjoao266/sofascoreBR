@@ -1,0 +1,231 @@
+DROP TABLE IF EXISTS tournament;
+DROP TABLE IF EXISTS team;
+DROP TABLE IF EXISTS player;
+DROP TABLE IF EXISTS standing;
+DROP TABLE IF EXISTS matches;
+DROP TABLE IF EXISTS goal_match;
+DROP TABLE IF EXISTS teams_stats_match;
+DROP TABLE IF EXISTS players_stats_match;
+DROP TABLE IF EXISTS shots_match;
+DROP TABLE IF EXISTS manager;
+DROP TABLE IF EXISTS referee;
+
+
+CREATE TABLE tournament (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tournament_id INT,
+    season_id INT,
+    country VARCHAR(255),
+    year INT,
+    name VARCHAR(255)
+);
+
+CREATE TABLE team (
+    id INTEGER PRIMARY KEY,
+    name TEXT,
+    id_tournament INTEGER REFERENCES tournament(tournament_id),
+    id_season INTEGER REFERENCES tournament(season_id)
+);
+
+CREATE TABLE player (
+    id INT PRIMARY KEY,
+    id_team INT REFERENCES team(id),
+    name VARCHAR(255),
+    shortName VARCHAR(255),
+    position VARCHAR(255),
+    height INT,
+    jerseyNumber INT,
+    age INT,
+    preferredFoot VARCHAR(255)
+);
+
+CREATE TABLE manager (
+    id INT PRIMARY KEY,
+    id_team INT REFERENCES team(id),
+    name VARCHAR(255)
+);
+
+CREATE TABLE referee (
+    id INT PRIMARY KEY,
+    name VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS matches (
+    id INT,
+    id_team_home INT REFERENCES team(id),
+    id_team_away INT REFERENCES team(id),
+    id_tournament INT REFERENCES tournament(id_tournament),
+    id_season INT REFERENCES season(id_season),
+    rodada INT,
+    status VARCHAR(255),
+    referee_id INT,
+    manager_home_id INT,
+    manager_away_id INT,
+    date DATE,
+    city VARCHAR(255),
+    stadium VARCHAR(255),
+    home_goals INT,
+    away_goals INT
+);
+
+CREATE TABLE standing (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    id_tournament INT REFERENCES tournament(tournament_id),
+    id_season INT REFERENCES tournament(season_id),
+    id_team INT REFERENCES team(id),
+    position INT,
+    points INT,
+    matches INT
+);
+
+CREATE TABLE IF NOT EXISTS goal_match (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    id_match INT REFERENCES matches(id),
+    scoreHome INT,
+    scoreAway INT,
+    scoreHome1st INT,
+    scoreAway1st INT,
+    scoreHome2nd INT,
+    scoreAway2nd INT
+);
+
+CREATE TABLE IF NOT EXISTS teams_stats_match (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    id_match INT REFERENCES matches(id),
+    id_team INT,
+    field VARCHAR(10),
+    period VARCHAR(10),
+    accurateCross FLOAT,
+    accurateLongBalls FLOAT,
+    accuratePasses FLOAT,
+    accurateThroughBall FLOAT,
+    aerialDuelsPercentage FLOAT,
+    ballPossession FLOAT,
+    ballRecovery FLOAT,
+    bigChanceCreated FLOAT,
+    bigChanceMissed FLOAT,
+    bigChanceScored FLOAT,
+    blockedScoringAttempt FLOAT,
+    cornerKicks FLOAT,
+    dispossessed FLOAT,
+    diveSaves FLOAT,
+    dribblesPercentage FLOAT,
+    duelWonPercent FLOAT,
+    errorsLeadToGoal FLOAT,
+    errorsLeadToShot FLOAT,
+    expectedGoals FLOAT,
+    finalThirdEntries FLOAT,
+    finalThirdPhaseStatistic FLOAT,
+    fouledFinalThird FLOAT,
+    fouls FLOAT,
+    freeKicks FLOAT,
+    goalKicks FLOAT,
+    goalkeeperSaves FLOAT,
+    goals FLOAT,
+    goalsPrevented FLOAT,
+    groundDuelsPercentage FLOAT,
+    highClaims FLOAT,
+    hitWoodwork FLOAT,
+    interceptionWon FLOAT,
+    offsides FLOAT,
+    passes FLOAT,
+    punches FLOAT,
+    redCards FLOAT,
+    shotsOffGoal FLOAT,
+    shotsOnGoal FLOAT,
+    throwIns FLOAT,
+    totalClearance FLOAT,
+    totalShotsInsideBox FLOAT,
+    totalShotsOnGoal FLOAT,
+    totalShotsOutsideBox FLOAT,
+    totalTackle FLOAT,
+    touchesInOppBox FLOAT,
+    wonTacklePercent FLOAT,
+    yellowCards FLOAT
+    );
+
+CREATE TABLE players_stats_match (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    id_match INT REFERENCES matches(id),
+    id_team INT REFERENCES teams(id),
+    id_player INT REFERENCES player(id),
+    field VARCHAR(10),
+    accurateCross FLOAT,
+    accurateKeeperSweeper FLOAT,
+    accurateLongBalls FLOAT,
+    accuratePass FLOAT,
+    aerialLost FLOAT,
+    aerialWon FLOAT,
+    bigChanceCreated FLOAT,
+    bigChanceMissed FLOAT,
+    blockedScoringAttempt FLOAT,
+    challengeLost FLOAT,
+    clearanceOffLine FLOAT,
+    dispossessed FLOAT,
+    duelLost FLOAT,
+    duelWon FLOAT,
+    errorLeadToAGoal FLOAT,
+    errorLeadToAShot FLOAT,
+    expectedAssists FLOAT,
+    expectedGoals FLOAT,
+    fouls FLOAT,
+    goalAssist FLOAT,
+    goals FLOAT,
+    goalsPrevented FLOAT,
+    goodHighClaim FLOAT,
+    hitWoodwork FLOAT,
+    interceptionWon FLOAT,
+    keyPass FLOAT,
+    lastManTackle FLOAT,
+    minutesPlayed FLOAT,
+    onTargetScoringAttempt FLOAT,
+    outfielderBlock FLOAT,
+    ownGoals FLOAT,
+    penaltyConceded FLOAT,
+    penaltyMiss FLOAT,
+    penaltySave FLOAT,
+    penaltyWon FLOAT,
+    possessionLostCtrl FLOAT,
+    punches FLOAT,
+    rating FLOAT,
+    savedShotsFromInsideTheBox FLOAT,
+    saves FLOAT,
+    shotOffTarget FLOAT,
+    totalClearance FLOAT,
+    totalContest FLOAT,
+    totalCross FLOAT,
+    totalKeeperSweeper FLOAT,
+    totalLongBalls FLOAT,
+    totalOffside FLOAT,
+    totalPass FLOAT,
+    totalTackle FLOAT,
+    touches FLOAT,
+    wasFouled FLOAT,
+    wonContest FLOAT
+);
+
+CREATE TABLE IF NOT EXISTS shots_match (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    id_match INT REFERENCES matches(id),
+    id_team INT REFERENCES team(id),
+    id_player INT REFERENCES player(id),
+    field TEXT,
+    shotType TEXT,
+    goalType TEXT,
+    xg FLOAT,
+    xgot FLOAT,
+    situation TEXT,
+    bodypart TEXT,
+    playerCoordinates TEXT,
+    inBox BOOLEAN,
+    goalMouthLocation TEXT,
+    time INT,
+    time_seconds INT,
+    period TEXT,
+    score_after_goal INT,
+    goal_to_ahead_score BOOLEAN,
+    goal_to_open_score BOOLEAN,
+    goal_to_tie BOOLEAN,
+    goal_winning BOOLEAN,
+    goal_to_save_lose BOOLEAN
+);

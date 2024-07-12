@@ -1,12 +1,20 @@
+import sys
+sys.path.append("../")
+from datetime import datetime
+from classes.utils import get_api_url, read_api_sofascore
+from classes.teams import Team
+from SQLconfig.config_mysql import mydb
+
 class Event:
     def __init__(self, id):
         self.id = id
         self.get_event()
         self.get_teams()
         self.get_match_info()
-        self.get_team_statistics_event()
-        self.get_players_statistics_event()
-        self.get_shotmap_event()
+        if self.match_info['status'] == 'finished':
+            self.get_team_statistics_event()
+            self.get_players_statistics_event()
+            self.get_shotmap_event()
 
     def get_event(self):
         url = get_api_url() + f'event/{self.id}'
@@ -30,7 +38,7 @@ class Event:
         self.match_info['away_id'] = self.away_team.id
         self.match_info['away_team'] = self.away_team.name
 
-        if self.match_info['status'] == 'notstarted' or self.match_info['status'] == 'postponed' or self.match_info['status'] == 'canceled':
+        if self.match_info['status'] != 'finished':
             self.match_info['referee_id'] = None
             self.match_info['manager_home_id'] = None
             self.match_info['manager_away_id'] = None
@@ -48,7 +56,7 @@ class Event:
 
     def get_team_statistics_event(self):
         print('Pegando estatísticas dos times do jogo...')
-        if self.match_info['status'] == 'notstarted' or self.match_info['status'] == 'postponed' or self.match_info['status'] == 'canceled':
+        if self.match_info['status'] != 'finished':
             return None
         else:
             url = get_api_url() + f'event/{self.id}/statistics'
@@ -79,8 +87,7 @@ class Event:
                 self.teams_stats = teams_stats
 
     def get_players_statistics_event(self):
-        print('Pegando estatísticas dos jogadores do jogo...')
-        if self.match_info['status'] == 'notstarted' or self.match_info['status'] == 'postponed' or self.match_info['status'] == 'canceled':
+        if self.match_info['status'] != 'finished':
             return None
         else:
             url = get_api_url() + f'event/{self.id}/lineups'
@@ -119,9 +126,57 @@ class Event:
                         players_statistics[player_i['id']] = player_i
                 self.players_statistics = players_statistics
 
+    def get_importance_of_goals(self, shotmap_info):
+        shot_goals = dict()
+        for key, shot in shotmap_info.items():
+            if shot['shotType'] == 'goal':
+                shot_goals[key] = shot
+                shot_goals[key]['id_key'] = key
+        sorted_shot_goals = sorted(shot_goals.values(), key=lambda x: x['time_seconds'])
+        n_gols = len(sorted_shot_goals)
+        home_goals = 0
+        away_goals = 0
+        cont_goals = 0
+        for goals in sorted_shot_goals:
+            cont_goals +=1
+            if goals['id_team'] == self.home_team.id:
+                home_goals += 1
+                goals_favor = home_goals
+                goals_against = away_goals
+            else:
+                away_goals += 1
+                goals_favor = away_goals
+                goals_against = home_goals
+            goal_to_ahead_score = False
+            goal_to_open_score = False
+            goal_to_tie = False
+            goal_winning = False
+            goal_to_save_lose = False
+
+            if goals_favor-1==goals_against:
+                goal_to_ahead_score = True
+                if goals_favor == 1:
+                    goal_to_open_score = True
+                if cont_goals == n_gols:
+                    goal_winning = True
+            elif goals_favor == goals_against:
+                goal_to_tie = True
+                if cont_goals == n_gols:
+                    goal_to_save_lose = True
+            score_after_goal = goals_favor - goals_against
+
+            shotmap_info[goals['id_key']]['score_after_goal'] = score_after_goal
+            shotmap_info[goals['id_key']]['goal_to_ahead_score'] = goal_to_ahead_score
+            shotmap_info[goals['id_key']]['goal_to_open_score'] = goal_to_open_score
+            shotmap_info[goals['id_key']]['goal_to_tie'] = goal_to_tie
+            shotmap_info[goals['id_key']]['goal_winning'] = goal_winning
+            shotmap_info[goals['id_key']]['goal_to_save_lose'] = goal_to_save_lose
+            
+        return shotmap_info
+        
     def get_shotmap_event(self):
         print('Pegando informações do shotmap do jogo...')
-        if self.match_info['status'] == 'notstarted' or self.match_info['status'] == 'postponed' or self.match_info['status'] == 'canceled':
+        if self.match_info['status'] != 'finished':
             return None
         else:
             url = get_api_url() + f'event/{self.id}/shotmap'
@@ -159,6 +214,7 @@ class Event:
                     goalMouthLocation = shot['goalMouthLocation']
                     situation = shot['situation']
                     time = shot['time']
+                    time_seconds = shot['timeSeconds']
                     addedTime = shot['addedTime']
 
                     
@@ -179,8 +235,81 @@ class Event:
                     shotmap_info[shot['id']] = {'id': id_player, 'id_team': id_team, 'id_event': id_event,
                                             'shotType': shotType, 'goalType': goalType,'xg': xg, 'xgot': xgot, 'situation': situation, 'bodypart': bodypart,
                                                 'playerCoordinates': playerCoordinates, 'inBox':box, 'goalMouthLocation': goalMouthLocation,
-                                                'time': time, 'period': period}
-                self.shotmap_info = shotmap_info
+                                                'time': time, 'time_seconds': time_seconds, 'period': period}
+                self.shotmap_info = self.get_importance_of_goals(shotmap_info)
+                self.get_goals_info()
 
+
+    def get_goals_info(self):
+        shot_goals = dict()
+        for key, shot in self.shotmap_info.items():
+            if shot['shotType'] == 'goal':
+                shot_goals[key] = shot
+
+        home_goals = 0
+        away_goals = 0
+        home_goals_1st_period = 0
+        home_goals_2nd_period = 0
+        away_goals_1st_period = 0
+        away_goals_2nd_period = 0
+
+        for key, shot in shot_goals.items():
+            if shot['period'] == '1ST':
+                if shot['id_team'] == self.home_team.id:
+                    home_goals_1st_period += 1
+                else:
+                    away_goals_1st_period += 1
+            elif shot['period'] == '2ND':
+                if shot['id_team'] == self.home_team.id:
+                    home_goals_2nd_period += 1
+                else:
+                    away_goals_2nd_period += 1
+            
+            if shot['id_team'] == self.home_team.id:
+                home_goals += 1
+            else:
+                away_goals += 1
+                
+        self.match_info['score_home'] = home_goals
+        self.match_info['score_away'] = away_goals
+
+        if 'teams_stats' in self.__dict__:
+            self.teams_stats[self.home_team.id]['ALL']['goals'] = home_goals
+            self.teams_stats[self.away_team.id]['ALL']['goals'] = away_goals
+            self.teams_stats[self.home_team.id]['1ST']['goals'] = home_goals_1st_period
+            self.teams_stats[self.away_team.id]['1ST']['goals'] = away_goals_1st_period
+            self.teams_stats[self.home_team.id]['2ND']['goals'] = home_goals_2nd_period
+            self.teams_stats[self.away_team.id]['2ND']['goals'] = away_goals_2nd_period
+            
+        self.goals_info = {
+            'ALL': {'home': home_goals, 'away': away_goals},
+            '1ST': {'home': home_goals_1st_period, 'away': away_goals_1st_period},
+            '2ND': {'home': home_goals_2nd_period, 'away': away_goals_2nd_period}
+        }
+
+    def save(self, mydb):
+        sql = "INSERT INTO matches (id, id_team_home, id_team_away, id_tournament, id_season, rodada, status, referee_id, manager_home_id, manager_away_id, date, city, stadium, home_goals, away_goals)\
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        int_vars = ['id', 'id_team_home', 'id_team_away', 'id_tournament', 'id_season',
+        'rodada', 'referee_id', 'manager_home_id', 'manager_away_id', 'score_home', 'score_away']
+        for var in int_vars:
+            if var in self.match_info.keys() and self.match_info[var] != None:
+                self.match_info[var] = int(self.match_info[var])
+            else:
+                self.match_info[var] = None
+        date_info = datetime.datetime.strptime(brasileirao.jogos[12116983].match_info['date'], "%d/%m/%Y")
+        val = (self.id, self.match_info['home_id'], self.match_info['away_id'], self.match_info['tournament_id'], self.match_info['season_id'],
+            self.match_info['round'], self.match_info['status'], self.match_info['referee_id'],
+            self.match_info['manager_home_id'], self.match_info['manager_away_id'],
+            date_info, self.match_info['city'], self.match_info['stadium'],
+            self.match_info['score_home'], self.match_info['score_away'])
+        mycursor = mydb.cursor()
+        mycursor.execute(sql, val)
+        mydb.commit()
+        mycursor.close()
+        
     def __str__(self):
-        return f'Jogo: {self.home_team.name} x {self.away_team.name} - {self.rodada}ª rodada - ID: {self.id}'
+        if 'goals_info' in self.__dict__:
+            return f'Jogo: {self.home_team.name} {self.goals_info["ALL"]["home"]} x {self.goals_info["ALL"]["away"]} {self.away_team.name} - {self.rodada}ª rodada - ID: {self.id}'
+        else:
+            return f'Jogo: {self.home_team.name} x {self.away_team.name} - {self.rodada}ª rodada - ID: {self.id}'

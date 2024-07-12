@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 import json
+import pandas as pd
 
 def get_api_url():
     return API_SCANTRACK_URL
@@ -32,3 +33,4 @@ def read_api_sofascore(url, selenium = True, error_stop = False):
         else:
             response_json = None
     return response_json
+

@@ -1,3 +1,16 @@
+from datetime import datetime
+import sys
+sys.path.append("../")
+from classes.utils import get_api_url, read_api_sofascore
+from classes.players import Player
+from classes.teams import Team
+from classes.managers import Manager
+from classes.referees import Referee
+from classes.events import Event
+import pandas as pd
+from SQLconfig.config_mysql import mydb
+
+
 class Tournament:
     def __init__(self, id, year):
         self.id = id
@@ -73,7 +86,60 @@ class Tournament:
         table = pd.DataFrame()
         for key, value in self.jogos.items():
             table = pd.concat([table, pd.DataFrame(value.match_info, index=[0])])
-        return table  
+        return table 
+
+    def get_players(self):
+        distinct_player_ids = set()
+        for id_jogo, jogo in self.jogos.items():
+            if jogo.match_info['status'] == 'finished':
+                distinct_player_ids.update(jogo.players_statistics.keys())
+
+        distinct_player_ids = list(distinct_player_ids)
+
+        players = dict()
+        cont = 1
+        len_distinct_player_ids = len(distinct_player_ids)
+        for id_player in distinct_player_ids:
+            print(f'Pegando informações do jogador {id_player}... - {cont}/{len_distinct_player_ids}')
+            players[id_player] = Player(id_player)
+            cont += 1
+        self.players = players
+    
+    def get_referees(self):
+        id_referees = set()
+        for id_jogo, jogo in self.jogos.items():
+            if jogo.match_info['status'] == 'finished':
+                id_referees.add(jogo.match_info['referee_id'])
+        id_referees = list(set(id_referees))
+
+        referees = dict()
+        cont = 0
+        n_referees = len(id_referees)
+        for id_referee in id_referees:
+            cont += 1
+            print(f'Pegando informações do árbitro {id_referee}... - {cont}/{n_referees}')
+            referee = Referee(id_referee)
+            referees[id_referee] = referee
+        self.referees = referees
+
+    def get_managers(self):
+        id_managers = set()
+        for id_jogo, jogo in self.jogos.items():
+            if jogo.match_info['status'] == 'finished':
+                id_managers.add(jogo.match_info['manager_home_id'])
+                id_managers.add(jogo.match_info['manager_away_id'])
+        id_managers = list(set(id_managers))
+
+        managers = dict()
+        cont = 0
+        n_managers = len(id_managers)
+        for id_manager in id_managers:
+            cont += 1
+            print(f'Pegando informações do manager {id_manager}... - {cont}/{n_managers}')
+            manager = Manager(id_manager)
+            print(manager)
+            managers[id_manager] = manager
+        self.managers = managers
     
     def run(self):
         print('Pegando informações do torneio...')
@@ -83,6 +149,211 @@ class Tournament:
         self.get_standings()
         print('Pegando informações de eventos do torneio...')
         self.get_events()
+        print('Pegando informações dos jogadores...')
+        self.get_players()
+        print('Pegando informações dos técnicos...')
+        self.get_managers()
+        print('Pegando informações dos árbitros...')
+        self.get_referees()
+
+    def get_id_db_tournament(self, mydb):
+        sql_check_saved = f"SELECT id FROM tournament WHERE tournament_id = %s AND season_id = %s"
+        val_check_saved = (int(self.id), int(self.season_id))
+        mycursor = mydb.cursor()
+        mycursor.execute(sql_check_saved, val_check_saved)
+        id_tournament = mycursor.fetchall()
+        mycursor.close()
+        if len(id_tournament) == 0:
+            return None
+        else:
+            return id_tournament[0][0]
+
+    def save(self, mydb):
+        id_tournament = self.get_id_db_tournament(mydb)
+        if id_tournament == None:
+            mycursor = mydb.cursor()
+            sql = f"INSERT INTO tournament (tournament_id, season_id, country, year, name) VALUES (%s, %s, %s, %s, %s)"
+            val = (int(self.id), int(self.season_id), self.country, int(self.year), self.name)
+            mycursor.execute(sql, val)
+            mydb.commit()
+            mycursor.close()
+        self.id_tournament_db = id_tournament
+    
+    def save_standing(self, mydb):
+        sql_check_exists = f"SELECT * FROM standing WHERE id_tournament = %s AND id_season = %s"
+        val_check_exists = (int(self.id), int(self.season_id))
+        mycursor = mydb.cursor()
+        mycursor.execute(sql_check_exists, val_check_exists)
+        exists = mycursor.fetchall()
+        mycursor.close()
+        for index, row in self.standing.iterrows():
+            if len(exists) > 0:
+                sql = f"UPDATE standing SET position = %s, points = %s, matches = %s WHERE id_tournament = %s AND id_season = %s AND id_team = %s"
+                val = (int(row['position']), int(row['points']), int(row['matches']), int(self.id), int(self.season_id), int(row['id']))
+            else:
+                sql = f"INSERT INTO standing (id_tournament, id_season, id_team, position, points, matches) VALUES (%s, %s, %s, %s, %s, %s)"
+                val = (int(self.id), int(self.season_id), int(row['id']), int(row['position']), int(row['points']), int(row['matches']))
+            mycursor = mydb.cursor()
+            mycursor.execute(sql, val)
+            mydb.commit()
+            mycursor.close()
+            
+    def save_teams_stats(self, mydb):
+        sql = "INSERT INTO teams_stats_match (id_match, id_team, field, period, accurateCross, accurateLongBalls, accuratePasses, accurateThroughBall, aerialDuelsPercentage, ballPossession, ballRecovery, bigChanceCreated, bigChanceMissed, bigChanceScored, blockedScoringAttempt, cornerKicks, dispossessed, diveSaves, dribblesPercentage, duelWonPercent, errorsLeadToGoal, errorsLeadToShot, expectedGoals, finalThirdEntries, finalThirdPhaseStatistic, fouledFinalThird, fouls, freeKicks, goalKicks, goalkeeperSaves, goals, goalsPrevented, groundDuelsPercentage, highClaims, hitWoodwork, interceptionWon, offsides, passes, punches, redCards, shotsOffGoal, shotsOnGoal, throwIns, totalClearance, totalShotsInsideBox, totalShotsOnGoal, totalShotsOutsideBox, totalTackle, touchesInOppBox, wonTacklePercent, yellowCards) VALUES\
+            (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        val = list()
+        for id_jogo, jogo in self.jogos.items():
+            if 'teams_stats' in jogo.__dict__:
+                for id_team, team_stats_all in jogo.teams_stats.items():
+                    for period in ['ALL', '1ST', '2ND']:
+                        team_stats = team_stats_all[period]
+                        val_i = [team_stats_all['id_event'], id_team, team_stats_all['field'], period]
+                        vars_int = ['accurateCross', 'accurateLongBalls', 'accuratePasses', 'accurateThroughBall',
+                        'aerialDuelsPercentage', 'ballPossession', 'ballRecovery', 'bigChanceCreated', 'bigChanceMissed',
+                        'bigChanceScored', 'blockedScoringAttempt', 'cornerKicks', 'dispossessed', 'diveSaves',
+                        'dribblesPercentage', 'duelWonPercent', 'errorsLeadToGoal', 'errorsLeadToShot', 'expectedGoals', 
+                        'finalThirdEntries', 'finalThirdPhaseStatistic', 'fouledFinalThird', 'fouls', 'freeKicks', 'goalKicks', 
+                        'goalkeeperSaves', 'goals', 'goalsPrevented', 'groundDuelsPercentage', 'highClaims', 'hitWoodwork', 
+                        'interceptionWon', 'offsides', 'passes', 'punches', 'redCards', 'shotsOffGoal', 'shotsOnGoal', 'throwIns',
+                            'totalClearance', 'totalShotsInsideBox', 'totalShotsOnGoal', 'totalShotsOutsideBox', 'totalTackle',
+                            'touchesInOppBox', 'wonTacklePercent', 'yellowCards']        
+                        for var in vars_int:
+                            if var in team_stats.keys():
+                                if team_stats[var] != None:
+                                    team_stats[var] = float(team_stats[var])
+                            else:
+                                team_stats[var] = None
+                            val_i.append(team_stats[var])
+                        val.append(val_i)
+        mycursor = mydb.cursor()
+        mycursor.executemany(sql, val)
+        mydb.commit()
+        mycursor.close()
+    
+    def save_players_stats(self, mydb):
+        sql = "INSERT INTO players_stats_match (id_match, id_team, id_player, field, accurateCross, accurateKeeperSweeper, accurateLongBalls, accuratePass, aerialLost, aerialWon, bigChanceCreated, bigChanceMissed, blockedScoringAttempt, challengeLost, clearanceOffLine, dispossessed, duelLost, duelWon, errorLeadToAGoal, errorLeadToAShot, expectedAssists, expectedGoals, fouls, goalAssist, goals, goalsPrevented, goodHighClaim, hitWoodwork, interceptionWon, keyPass, lastManTackle, minutesPlayed, onTargetScoringAttempt, outfielderBlock, ownGoals, penaltyConceded, penaltyMiss, penaltySave, penaltyWon, possessionLostCtrl, punches, rating, savedShotsFromInsideTheBox, saves, shotOffTarget, totalClearance, totalContest, totalCross, totalKeeperSweeper, totalLongBalls, totalOffside, totalPass, totalTackle, touches, wasFouled, wonContest) VALUES\
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s)"
+        val = list()
+        for id_jogo, jogo in self.jogos.items():
+            if 'teams_stats' in jogo.__dict__:
+                for id_player, player_stats in jogo.players_statistics.items():
+                    if player_stats['id_team'] == jogo.home_team.id:
+                        field = 'home'
+                    else:
+                        field = 'away'
+                    val_i = [player_stats['id_event'], player_stats['id_team'], id_player, field]
+                    vars_int = ['accurateCross', 'accurateKeeperSweeper', 'accurateLongBalls', 'accuratePass', 'aerialLost',
+                        'aerialWon', 'bigChanceCreated', 'bigChanceMissed', 'blockedScoringAttempt', 'challengeLost',
+                        'clearanceOffLine', 'dispossessed', 'duelLost', 'duelWon', 'errorLeadToAGoal', 'errorLeadToAShot',
+                        'expectedAssists', 'expectedGoals', 'fouls', 'goalAssist', 'goals', 'goalsPrevented', 'goodHighClaim',
+                        'hitWoodwork', 'interceptionWon', 'keyPass', 'lastManTackle', 'minutesPlayed', 'onTargetScoringAttempt',
+                        'outfielderBlock', 'ownGoals', 'penaltyConceded', 'penaltyMiss', 'penaltySave', 'penaltyWon',
+                        'possessionLostCtrl', 'punches', 'rating', 'savedShotsFromInsideTheBox', 'saves', 'shotOffTarget',
+                        'totalClearance', 'totalContest', 'totalCross', 'totalKeeperSweeper', 'totalLongBalls', 'totalOffside',
+                        'totalPass', 'totalTackle', 'touches', 'wasFouled', 'wonContest'] 
+                        
+                    for var in vars_int:
+                        if var in player_stats.keys():
+                            if player_stats[var] != None:
+                                player_stats[var] = float(player_stats[var])
+                        else:
+                            player_stats[var] = None
+                        val_i.append(player_stats[var])
+                    val.append(val_i)
+        mycursor = mydb.cursor()
+        mycursor.executemany(sql, val)
+        mydb.commit()
+        mycursor.close()
+    
+    def save_shotmap_match(self, mydb):
+        sql = "INSERT INTO shots_match (id_match, id_team, id_player, field, shotType, goalType, xg, xgot, situation, bodypart, playerCoordinates, inBox, goalMouthLocation, time, time_seconds, period, score_after_goal, goal_to_ahead_score, goal_to_open_score, goal_to_tie, goal_winning, goal_to_save_lose) VALUES\
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        val = list()
+        for id_jogo, jogo in self.jogos.items():
+            if 'shotmap_info' in jogo.__dict__:
+                for key, shot in jogo.shotmap_info.items():
+                    if shot['id_team'] == jogo.home_team.id:
+                        field = 'home'
+                    else:
+                        field = 'away'
+                    val_i = [jogo.id, shot['id_team'], shot['id'], field]
+                    vars = ['shotType', 'goalType', 'xg', 'xgot', 'situation', 'bodypart', 'playerCoordinates', 'inBox', 'goalMouthLocation', 'time', 'time_seconds', 'period', 'score_after_goal', 'goal_to_ahead_score', 'goal_to_open_score', 'goal_to_tie', 'goal_winning', 'goal_to_save_lose']
+                    vars_float_or_int = ['xg', 'xgot', 'time', 'time_seconds', 'score_after_goal']
+                    vars_coordinates = ['playerCoordinates']
+                    for var in vars:
+                        if var in shot.keys() and shot[var] != None:
+                            if var in vars_float_or_int:
+                                val_i.append(float(shot[var]))
+                            elif var in vars_coordinates:
+                                val_i.append(json.dumps(shot[var]))
+                            else:
+                                val_i.append(shot[var])
+                        else:
+                            val_i.append(None)
+                    val.append(val_i)
+        mycursor = mydb.cursor()
+        mycursor.executemany(sql, val)
+        mydb.commit()
+        mycursor.close()
+        
+    def save_goals(self, mydb):
+        sql = "INSERT INTO goal_match (id_match, scoreHome, scoreAway, scoreHome1st, scoreAway1st, scoreHome2nd, scoreAway2nd)\
+            VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        val = list()
+        for id_jogo, jogo in self.jogos.items():
+            if 'goals_info' in jogo.__dict__:
+                goals_info = jogo.goals_info
+                val_i = [jogo.id, goals_info['ALL']['home'], goals_info['ALL']['away'], goals_info['1ST']['home'], goals_info['1ST']['away'], goals_info['2ND']['home'], goals_info['2ND']['away']]
+                val.append(val_i)
+        mycursor = mydb.cursor()
+        mycursor.executemany(sql, val)
+        mydb.commit()
+        mycursor.close()
+        
+    def db_to_excel(self, mydb):
+        mycursor = mydb.cursor()
+        sql_show_tables = "SHOW TABLES"
+        mycursor.execute(sql_show_tables)
+        tables = mycursor.fetchall()
+        tables = [table[0] for table in tables]
+        for table in tables:
+            sql_select_all = f"SELECT * FROM {table}"
+            mycursor.execute(sql_select_all)
+            result = mycursor.fetchall()
+            df = pd.DataFrame(result, columns=mycursor.column_names)
+            excel_file = f"data/{table}.xlsx"
+            df.to_excel(excel_file, index=False)
+
+    def save_all(self, mydb):
+        print('Salvando informações do torneio...')
+        self.save(mydb)
+        print('Salvando informações dos times...')
+        for id_team, team in self.teams.items():
+            team.save(mydb)
+        print('Salvando informações dos jogos...')
+        for id_jogo, jogo in self.jogos.items():
+            jogo.save(mydb)
+        print('Salvando informações dos jogadores...')
+        for id_player, player in self.players.items():
+            player.save(mydb)
+        print('Salvando informações dos técnicos...')
+        for id_manager, manager in self.managers.items():
+            manager.save(mydb)
+        print('Salvando informações dos árbitros...')
+        for id_referee, referee in self.referees.items():
+            referee.save(mydb)
+        print('Salvando informações dos standings...')
+        self.save_standing(mydb)
+        print('Salvando informações das estatísticas dos times...')
+        self.save_teams_stats(mydb)
+        print('Salvando informações das estatísticas dos jogadores...')
+        self.save_players_stats(mydb)  
+        print('Salvando informações do shotmap...')
+        self.save_shotmap_match(mydb)
+        print('Salvando informações dos gols...')
+        self.save_goals(mydb)
+        print('Salva informações no excel...')
+        self.db_to_excel(mydb)
 
     def __str__(self) -> str:
         return f'Tournament: {self.name} - Country: {self.country} - Year: {self.year}'
