@@ -9,7 +9,7 @@ class Team:
         self.id = id
         self.tournament_id = tournament_id
         self.season_id = season_id
-        self.get_infos_team()
+        
         
     def get_infos_team(self):
         url = get_api_url() + f"team/{self.id}"
@@ -21,12 +21,18 @@ class Team:
             infos_tournament = read_api_sofascore(url, selenium=False)['seasons']
             self.season_id = infos_tournament[0]['id']
     def save(self, mydb):
-        sql = f"INSERT INTO team (id, name, id_tournament, id_season) VALUES (%s, %s, %s, %s)"
-        val = (int(self.id), self.name, int(self.tournament_id), int(self.season_id))
+        sql_check = f"SELECT * FROM team WHERE id = {int(self.id)} AND id_tournament = {int(self.tournament_id)} AND id_season = {int(self.season_id)}"
         mycursor = mydb.cursor()
-        mycursor.execute(sql, val)
-        mydb.commit()
+        mycursor.execute(sql_check)
+        myresult = mycursor.fetchall()
         mycursor.close()
+        if len(myresult) <= 0:
+            sql = f"INSERT INTO team (id, name, id_tournament, id_season) VALUES (%s, %s, %s, %s)"
+            val = (int(self.id), self.name, int(self.tournament_id), int(self.season_id))
+            mycursor = mydb.cursor()
+            mycursor.execute(sql, val)
+            mydb.commit()
+            mycursor.close()
         
     def __str__(self):
         return f"Team: {self.name} - ID: {self.id} - Tournament ID: {self.tournament_id} - Season ID: {self.season_id}"

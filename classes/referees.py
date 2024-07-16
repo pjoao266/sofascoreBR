@@ -7,7 +7,6 @@ from SQLconfig.config_mysql import mydb
 class Referee:
     def __init__(self, id):
         self.id = id
-        self.get_info_referee()
     
     def get_info_referee(self):
         url = get_api_url() + f"referee/{self.id}"

@@ -7,7 +7,6 @@ from SQLconfig.config_mysql import mydb
 class Player:
     def __init__(self, id):
         self.id = id
-        self.get_info_players()
 
     def get_info_players(self):
         url = get_api_url() + f"player/{self.id}"

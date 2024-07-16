@@ -8,6 +8,7 @@ from SQLconfig.config_mysql import mydb
 class Event:
     def __init__(self, id):
         self.id = id
+    def run(self):
         self.get_event()
         self.get_teams()
         self.get_match_info()
@@ -26,7 +27,10 @@ class Event:
     
     def get_teams(self):
         self.home_team = Team(self.event['homeTeam']['id'], self.tournament_id, self.season_id)
+        self.home_team.get_infos_team()
         self.away_team = Team(self.event['awayTeam']['id'], self.tournament_id, self.season_id)
+        self.away_team.get_infos_team()
+
     
     def get_match_info(self):
         self.match_info = dict()
@@ -288,8 +292,18 @@ class Event:
         }
 
     def save(self, mydb):
-        sql = "INSERT INTO matches (id, id_team_home, id_team_away, id_tournament, id_season, rodada, status, referee_id, manager_home_id, manager_away_id, date, city, stadium, home_goals, away_goals)\
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        sql_check = "SELECT * FROM matches WHERE id = %s AND id_tournament = %s AND id_season = %s"
+        val_check = (int(self.id), int(self.match_info['tournament_id']), int(self.match_info['season_id']))
+        mycursor = mydb.cursor()
+        mycursor.execute(sql_check, val_check)
+        myresult = mycursor.fetchall()
+        mycursor.close()
+        if len(myresult) > 0:
+            sql = "UPDATE matches SET id_team_home = %s, id_team_away = %s, rodada = %s, status = %s, referee_id = %s, manager_home_id = %s, manager_away_id = %s, date = %s, city = %s, stadium = %s, home_goals = %s, away_goals = %s WHERE id = %s AND id_tournament = %s AND id_season = %s"
+        else:
+            sql = "INSERT INTO matches (id, id_team_home, id_team_away, id_tournament, id_season, rodada, status, referee_id, manager_home_id, manager_away_id, date, city, stadium, home_goals, away_goals)\
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        
         int_vars = ['id', 'id_team_home', 'id_team_away', 'id_tournament', 'id_season',
         'rodada', 'referee_id', 'manager_home_id', 'manager_away_id', 'score_home', 'score_away']
         for var in int_vars:
@@ -297,12 +311,19 @@ class Event:
                 self.match_info[var] = int(self.match_info[var])
             else:
                 self.match_info[var] = None
-        date_info = datetime.datetime.strptime(brasileirao.jogos[12116983].match_info['date'], "%d/%m/%Y")
-        val = (self.id, self.match_info['home_id'], self.match_info['away_id'], self.match_info['tournament_id'], self.match_info['season_id'],
-            self.match_info['round'], self.match_info['status'], self.match_info['referee_id'],
-            self.match_info['manager_home_id'], self.match_info['manager_away_id'],
-            date_info, self.match_info['city'], self.match_info['stadium'],
-            self.match_info['score_home'], self.match_info['score_away'])
+        date_info = datetime.strptime(self.match_info['date'], "%d/%m/%Y")
+        if len(myresult) > 0:
+            val = (self.match_info['home_id'], self.match_info['away_id'], self.match_info['round'], self.match_info['status'], self.match_info['referee_id'],
+                self.match_info['manager_home_id'], self.match_info['manager_away_id'],
+                date_info, self.match_info['city'], self.match_info['stadium'],
+                self.match_info['score_home'], self.match_info['score_away'],
+                self.id, self.match_info['tournament_id'], self.match_info['season_id'])
+        else:
+            val = (self.id, self.match_info['home_id'], self.match_info['away_id'], self.match_info['tournament_id'], self.match_info['season_id'],
+                self.match_info['round'], self.match_info['status'], self.match_info['referee_id'],
+                self.match_info['manager_home_id'], self.match_info['manager_away_id'],
+                date_info, self.match_info['city'], self.match_info['stadium'],
+                self.match_info['score_home'], self.match_info['score_away'])
         mycursor = mydb.cursor()
         mycursor.execute(sql, val)
         mydb.commit()

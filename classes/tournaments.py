@@ -7,6 +7,7 @@ from classes.teams import Team
 from classes.managers import Manager
 from classes.referees import Referee
 from classes.events import Event
+import json
 import pandas as pd
 from SQLconfig.config_mysql import mydb
 
@@ -40,8 +41,31 @@ class Tournament:
 
     def get_teams_tournament(self):
         teams = dict()
+        # read teams already saved in the database
+        sql_check_saved = f"SELECT id FROM team WHERE id_tournament = %s AND id_season = %s"
+        val_check_saved = (int(self.id), int(self.season_id))
+        mycursor = mydb.cursor()
+        mycursor.execute(sql_check_saved, val_check_saved)
+        id_teams_saved = mycursor.fetchall()
+        mycursor.close()
+        id_teams_saved = [id_team[0] for id_team in id_teams_saved]
+
+        id_not_saved = [x['id'] for x in self.season_info['teams'] if x['id'] not in id_teams_saved]
         for team in self.season_info['teams']:
-            teams[team['id']] = Team(team['id'], self.id, self.season_id)
+            if team['id'] in id_not_saved:
+                team_class = Team(team['id'], self.id, self.season_id)
+                team_class.get_infos_team()
+                teams[team['id']] = team_class
+            else:
+                team_class = Team(team['id'], self.id, self.season_id)
+                sql_get_team = f"SELECT * FROM team WHERE id = {int(team['id'])}"
+                mycursor = mydb.cursor()
+                mycursor.execute(sql_get_team)
+                team_info = mycursor.fetchall()
+                mycursor.close()
+                team_info = team_info[0]
+                team_class.name = team_info[1]
+                teams[team['id']] = team_class
         self.teams = teams
     
     def get_standings(self):
@@ -64,7 +88,8 @@ class Tournament:
                                                 team_brasileirao.matches)],
                                                 columns=['id', 'team', 'position', 'points', 'matches'])
             statitics_table = pd.concat([statitics_table, statitics_table_time])
-        self.standing = statitics_table.sort_values('position', ascending=True)       
+        self.standing = statitics_table.sort_values('position', ascending=True)
+
     def get_events_rodada(self, rodada):
         url = get_api_url() + f'unique-tournament/{self.id}/season/{self.season_id}/events/round/{rodada}'
         events = read_api_sofascore(url, selenium=False)
@@ -72,14 +97,28 @@ class Tournament:
         return jogos_rodada
     
     def get_events(self):
+        sql_check_saved = f"SELECT id FROM matches WHERE id_tournament = %s AND id_season = %s AND status = 'finished'"
+        val_check_saved = (int(self.id), int(self.season_id))
+        mycursor = mydb.cursor()
+        mycursor.execute(sql_check_saved, val_check_saved)
+        id_events_saved = mycursor.fetchall()
+        mycursor.close()
+        id_events_saved = [id_events[0] for id_events in id_events_saved]
         jogos = dict()
-        for i in range(38):
+
+        url = get_api_url() + f'unique-tournament/{self.id}/season/{self.season_id}/rounds/'
+        current_round = read_api_sofascore(url, selenium=False)['currentRound']['round']
+
+        for i in range(current_round):
             rodada = i + 1
             jogos_rodada = self.get_events_rodada(rodada)
+            id_not_saved = [x['id'] for x in jogos_rodada if x['id'] not in id_events_saved]
             for event in jogos_rodada:
-                event_id = event['id']
-                evento_i = Event(event_id)
-                jogos[event_id] = evento_i
+                if event['id'] in id_not_saved:
+                    event_id = event['id']
+                    evento_i = Event(event_id)
+                    evento_i.run()
+                    jogos[event_id] = evento_i
         self.jogos = jogos
 
     def get_table_of_events(self):
@@ -95,14 +134,22 @@ class Tournament:
                 distinct_player_ids.update(jogo.players_statistics.keys())
 
         distinct_player_ids = list(distinct_player_ids)
+        sql_check_saved = f"SELECT id FROM player WHERE 1"
+        mycursor = mydb.cursor()
+        mycursor.execute(sql_check_saved)
+        myresult = mycursor.fetchall()
+        id_players_saved = [x[0] for x in myresult]
 
+        distinct_player_ids_not_saved = [x for x in distinct_player_ids if x not in id_players_saved]
         players = dict()
         cont = 1
-        len_distinct_player_ids = len(distinct_player_ids)
-        for id_player in distinct_player_ids:
-            print(f'Pegando informações do jogador {id_player}... - {cont}/{len_distinct_player_ids}')
-            players[id_player] = Player(id_player)
-            cont += 1
+        len_distinct_player_ids = len(distinct_player_ids_not_saved)
+        for id_player in distinct_player_ids_not_saved:
+                print(f'Pegando informações do jogador {id_player}... - {cont}/{len_distinct_player_ids}')
+                player = Player(id_player)
+                player.get_info_players()
+                players[id_player] = player
+                cont += 1
         self.players = players
     
     def get_referees(self):
@@ -112,13 +159,21 @@ class Tournament:
                 id_referees.add(jogo.match_info['referee_id'])
         id_referees = list(set(id_referees))
 
+        sql_check_saved = f"SELECT id FROM referee WHERE 1"
+        mycursor = mydb.cursor()
+        mycursor.execute(sql_check_saved)
+        myresult = mycursor.fetchall()
+        id_referees_saved = [x[0] for x in myresult]
+
+        id_referees_not_saved = [x for x in id_referees if x not in id_referees_saved]
         referees = dict()
         cont = 0
-        n_referees = len(id_referees)
-        for id_referee in id_referees:
+        n_referees = len(id_referees_not_saved)
+        for id_referee in id_referees_not_saved:
             cont += 1
             print(f'Pegando informações do árbitro {id_referee}... - {cont}/{n_referees}')
             referee = Referee(id_referee)
+            referee.get_info_referee()
             referees[id_referee] = referee
         self.referees = referees
 
@@ -129,15 +184,23 @@ class Tournament:
                 id_managers.add(jogo.match_info['manager_home_id'])
                 id_managers.add(jogo.match_info['manager_away_id'])
         id_managers = list(set(id_managers))
+        
+        sql = "SELECT id FROM manager WHERE 1"
+        mycursor = mydb.cursor()
+        mycursor.execute(sql)
+        myresult = mycursor.fetchall()
+        id_managers_saved = [x[0] for x in myresult]
+
+        id_managers_not_saved = [x for x in id_managers if x not in id_managers_saved]
 
         managers = dict()
         cont = 0
-        n_managers = len(id_managers)
-        for id_manager in id_managers:
+        n_managers = len(id_managers_not_saved)
+        for id_manager in id_managers_not_saved:
             cont += 1
             print(f'Pegando informações do manager {id_manager}... - {cont}/{n_managers}')
             manager = Manager(id_manager)
-            print(manager)
+            manager.get_info_manager()
             managers[id_manager] = manager
         self.managers = managers
     
