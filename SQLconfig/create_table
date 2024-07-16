@@ -21,7 +21,7 @@ CREATE TABLE tournament (
 );
 
 CREATE TABLE team (
-    id INTEGER PRIMARY KEY,
+    id INTEGER,
     name TEXT,
     id_tournament INTEGER REFERENCES tournament(tournament_id),
     id_season INTEGER REFERENCES tournament(season_id)

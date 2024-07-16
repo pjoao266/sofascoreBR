@@ -11485,12 +11485,6 @@ ALTER TABLE `standing`
   ADD PRIMARY KEY (`id`);
 
 --
--- Índices para tabela `team`
---
-ALTER TABLE `team`
-  ADD PRIMARY KEY (`id`);
-
---
 -- Índices para tabela `teams_stats_match`
 --
 ALTER TABLE `teams_stats_match`
