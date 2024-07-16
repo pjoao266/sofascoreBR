@@ -20,15 +20,13 @@ from classes.managers import Manager
 from classes.teams import Team
 from classes.referees import Referee
 
-# brasileirao = Tournament(id = 325, year = 2024)
-# brasileirao.run()
-# brasileirao.save_all(mydb)
-# print('Salva informações no excel...')
-# db_to_excel(mydb)
-# if brasileirao.has_new_events:
-#     print('Atualiza em git...')
-#     git_push()
-# else:
-#     print('Sem atualizações...')
-
-git_push()
+brasileirao = Tournament(id = 325, year = 2024)
+brasileirao.run()
+brasileirao.save_all(mydb)
+print('Salva informações no excel...')
+db_to_excel(mydb)
+if brasileirao.has_new_events:
+    print('Atualiza em git...')
+    git_push()
+else:
+    print('Sem atualizações...')
