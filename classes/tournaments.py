@@ -16,6 +16,7 @@ class Tournament:
     def __init__(self, id, year):
         self.id = id
         self.year = year
+        self.has_new_events = False
         self.get_tournament()
         self.get_tournament_seasons()
 
@@ -118,6 +119,8 @@ class Tournament:
                     event_id = event['id']
                     evento_i = Event(event_id)
                     evento_i.run()
+                    if evento_i.match_info['status'] == 'finished':
+                        self.has_new_events = True
                     jogos[event_id] = evento_i
         self.jogos = jogos
 

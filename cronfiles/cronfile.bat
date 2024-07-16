@@ -1,3 +1,3 @@
 @echo off
-py ../croncode.py %*
+py croncode.py %*
 pause

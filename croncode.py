@@ -10,7 +10,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 import json
 from datetime import datetime
-import _pickle as cPickle
 
 from classes.utils import *
 from SQLconfig.config_mysql import *
@@ -26,4 +25,8 @@ brasileirao.run()
 brasileirao.save_all(mydb)
 print('Salva informações no excel...')
 db_to_excel(mydb)
-git_push()
+if brasileirao.has_new_events:
+    print('Atualiza em git...')
+    git_push()
+else:
+    print('Sem atualizações...')
