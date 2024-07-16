@@ -29,6 +29,7 @@ class Player:
 
         if 'dateOfBirthTimestamp' in dados_players:
             date_of_birth = datetime.fromtimestamp(dados_players['dateOfBirthTimestamp'])
+            self.date_of_birth = date_of_birth
             current_date = datetime.now()
             interval_years = current_date - date_of_birth
             interval_years = current_date - date_of_birth
@@ -43,12 +44,12 @@ class Player:
         
     def save(self, mydb):
         mycursor = mydb.cursor()
-        sql = "INSERT INTO player (id, id_team, name, shortName, position, height, jerseyNumber, age, preferredFoot) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        vars_int = ['id', 'teamId', 'height', 'jerseyNumber', 'age']
+        sql = "INSERT INTO player (id, id_team, name, shortName, position, height, jerseyNumber, birthDate, preferredFoot) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        vars_int = ['id', 'teamId', 'height', 'jerseyNumber']
         for var in vars_int:
             if self.__dict__[var] != None:
                 self.__dict__[var] = int(self.__dict__[var])
-        val = (self.id, self.teamId, self.name, self.shortName, self.position, self.height, self.jerseyNumber, self.age, self.preferredFoot)
+        val = (self.id, self.teamId, self.name, self.shortName, self.position, self.height, self.jerseyNumber, self.date_of_birth, self.preferredFoot)
         mycursor.execute(sql, val)
         mydb.commit()
         mycursor.close()

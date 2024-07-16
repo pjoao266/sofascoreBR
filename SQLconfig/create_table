@@ -35,7 +35,7 @@ CREATE TABLE player (
     position VARCHAR(255),
     height INT,
     jerseyNumber INT,
-    age INT,
+    birthDate DATE,
     preferredFoot VARCHAR(255)
 );
 

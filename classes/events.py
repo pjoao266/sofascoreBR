@@ -91,6 +91,7 @@ class Event:
                 self.teams_stats = teams_stats
 
     def get_players_statistics_event(self):
+        print('Pegando estatísticas dos jogadores do jogo...')
         if self.match_info['status'] != 'finished':
             return None
         else:
