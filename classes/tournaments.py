@@ -1,7 +1,7 @@
 from datetime import datetime
 import sys
 sys.path.append("../")
-from classes.utils import get_api_url, read_api_sofascore
+from classes.utils import get_api_url, read_api_sofascore, db_to_excel
 from classes.players import Player
 from classes.teams import Team
 from classes.managers import Manager
@@ -373,19 +373,6 @@ class Tournament:
         mydb.commit()
         mycursor.close()
         
-    def db_to_excel(self, mydb):
-        mycursor = mydb.cursor()
-        sql_show_tables = "SHOW TABLES"
-        mycursor.execute(sql_show_tables)
-        tables = mycursor.fetchall()
-        tables = [table[0] for table in tables]
-        for table in tables:
-            sql_select_all = f"SELECT * FROM {table}"
-            mycursor.execute(sql_select_all)
-            result = mycursor.fetchall()
-            df = pd.DataFrame(result, columns=mycursor.column_names)
-            excel_file = f"data/{table}.xlsx"
-            df.to_excel(excel_file, index=False)
 
     def save_all(self, mydb):
         print('Salvando informações do torneio...')
@@ -415,8 +402,6 @@ class Tournament:
         self.save_shotmap_match(mydb)
         print('Salvando informações dos gols...')
         self.save_goals(mydb)
-        print('Salva informações no excel...')
-        self.db_to_excel(mydb)
 
     def __str__(self) -> str:
         return f'Tournament: {self.name} - Country: {self.country} - Year: {self.year}'
