@@ -20,6 +20,19 @@ def read_api_sofascore(url, selenium = True, error_stop = False):
     if selenium:
         options = webdriver.ChromeOptions()     
         options.headless = True
+        options.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 2}) 
+        options.add_argument("--no-sandbox") 
+        options.add_argument("--disable-setuid-sandbox") 
+        options.add_argument('--ignore-certificate-errors')
+
+        options.add_argument("--remote-debugging-port=9222")  # this
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        options.add_argument("--disable-dev-shm-using") 
+        options.add_argument("--disable-extensions") 
+        options.add_argument("--disable-gpu") 
+        options.add_argument("disable-infobars")
+        options.add_argument(r"user-data-dir=.\cookies\\test") 
+
         driver = webdriver.Chrome(ChromeDriverManager().install(), options= options)
         driver.implicitly_wait(15)
         driver.minimize_window()
