@@ -38,7 +38,7 @@ def read_api_sofascore(url, selenium = True, error_stop = False):
 
 def git_push():
     try:
-        PATH_OF_GIT_REPO = '../.git/'  # make sure .git folder is properly configured
+        PATH_OF_GIT_REPO = '.git/'  # make sure .git folder is properly configured
         DATE_AND_HOUR = datetime.now().strftime("%d/%m %Hh")
         COMMIT_MESSAGE = 'Atualizações dados ' + DATE_AND_HOUR
         repo = Repo(PATH_OF_GIT_REPO)
@@ -60,5 +60,5 @@ def db_to_excel(mydb):
         mycursor.execute(sql_select_all)
         result = mycursor.fetchall()
         df = pd.DataFrame(result, columns=mycursor.column_names)
-        excel_file = f"../data/{table}.xlsx"
+        excel_file = f"data/{table}.xlsx"
         df.to_excel(excel_file, index=False)
