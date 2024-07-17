@@ -300,7 +300,7 @@ class Event:
         myresult = mycursor.fetchall()
         mycursor.close()
         if len(myresult) > 0:
-            sql = "UPDATE matches SET id_team_home = %s, id_team_away = %s, rodada = %s, status = %s, referee_id = %s, manager_home_id = %s, manager_away_id = %s, date = %s, city = %s, stadium = %s, home_goals = %s, away_goals = %s WHERE id = %s AND id_tournament = %s AND id_season = %s"
+            sql = "UPDATE matches SET id_team_home = %s, id_team_away = %s, rodada = %s, status = %s, referee_id = %s, manager_home_id = %s, manager_away_id = %s, date = %s, city = %s, stadium = %s, home_goals = %s, away_goals = %s, dt_insertion = %s WHERE id = %s AND id_tournament = %s AND id_season = %s"
         else:
             sql = "INSERT INTO matches (id, id_team_home, id_team_away, id_tournament, id_season, rodada, status, referee_id, manager_home_id, manager_away_id, date, city, stadium, home_goals, away_goals)\
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
@@ -317,7 +317,7 @@ class Event:
             val = (self.match_info['home_id'], self.match_info['away_id'], self.match_info['round'], self.match_info['status'], self.match_info['referee_id'],
                 self.match_info['manager_home_id'], self.match_info['manager_away_id'],
                 date_info, self.match_info['city'], self.match_info['stadium'],
-                self.match_info['score_home'], self.match_info['score_away'],
+                self.match_info['score_home'], self.match_info['score_away'], datetime.now(),
                 self.id, self.match_info['tournament_id'], self.match_info['season_id'])
         else:
             val = (self.id, self.match_info['home_id'], self.match_info['away_id'], self.match_info['tournament_id'], self.match_info['season_id'],

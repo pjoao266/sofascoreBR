@@ -255,8 +255,8 @@ class Tournament:
         mycursor.close()
         for index, row in self.standing.iterrows():
             if len(exists) > 0:
-                sql = f"UPDATE standing SET position = %s, points = %s, matches = %s WHERE id_tournament = %s AND id_season = %s AND id_team = %s"
-                val = (int(row['position']), int(row['points']), int(row['matches']), int(self.id), int(self.season_id), int(row['id']))
+                sql = f"UPDATE standing SET position = %s, points = %s, matches = %s, dt_insertion = %s WHERE id_tournament = %s AND id_season = %s AND id_team = %s"
+                val = (int(row['position']), int(row['points']), int(row['matches']), datetime.now(), int(self.id), int(self.season_id), int(row['id']))
             else:
                 sql = f"INSERT INTO standing (id_tournament, id_season, id_team, position, points, matches) VALUES (%s, %s, %s, %s, %s, %s)"
                 val = (int(self.id), int(self.season_id), int(row['id']), int(row['position']), int(row['points']), int(row['matches']))
