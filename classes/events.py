@@ -1,3 +1,4 @@
+
 import sys
 sys.path.append("../")
 from datetime import datetime
@@ -6,9 +7,35 @@ from classes.teams import Team
 from SQLconfig.config_mysql import mydb
 
 class Event:
+    """
+    Represents a sports event.
+
+    Attributes:
+    - id: The ID of the event.
+    - event: The event data retrieved from the API.
+    - season_id: The ID of the season the event belongs to.
+    - tournament_id: The ID of the tournament the event belongs to.
+    - rodada: The round number of the event.
+    - home_team: The home team of the event.
+    - away_team: The away team of the event.
+    - match_info: Information about the match.
+    - teams_stats: Statistics of the teams in the match.
+    - players_statistics: Statistics of the players in the match.
+    """
+
     def __init__(self, id):
+        """
+        Initializes a new instance of the Event class.
+
+        Parameters:
+        - id: The ID of the event.
+        """
         self.id = id
+
     def run(self):
+        """
+        Runs the event processing logic.
+        """
         self.get_event()
         self.get_teams()
         self.get_match_info()
@@ -18,6 +45,9 @@ class Event:
             self.get_shotmap_event()
 
     def get_event(self):
+        """
+        Retrieves the event data from the API.
+        """
         url = get_api_url() + f'event/{self.id}'
         event = read_api_sofascore(url, selenium=False)
         self.event = event['event']
@@ -26,6 +56,9 @@ class Event:
         self.rodada = self.event['roundInfo']['round']
     
     def get_teams(self):
+        """
+        Retrieves the home and away teams of the event.
+        """
         self.home_team = Team(self.event['homeTeam']['id'], self.tournament_id, self.season_id)
         self.home_team.get_infos_team()
         self.away_team = Team(self.event['awayTeam']['id'], self.tournament_id, self.season_id)
@@ -33,6 +66,9 @@ class Event:
 
     
     def get_match_info(self):
+        """
+        Retrieves information about the match.
+        """
         self.match_info = dict()
         self.match_info['id'] = self.id
         self.match_info['round'] = self.event['roundInfo']['round']
@@ -59,6 +95,9 @@ class Event:
         print(f'Jogo: {self.home_team.name} x {self.away_team.name} - {self.rodada}ª rodada - ID: {self.id}')
 
     def get_team_statistics_event(self):
+        """
+        Retrieves the statistics of the teams in the match.
+        """
         print('Pegando estatísticas dos times do jogo...')
         if self.match_info['status'] != 'finished':
             return None
@@ -91,6 +130,9 @@ class Event:
                 self.teams_stats = teams_stats
 
     def get_players_statistics_event(self):
+        """
+        Retrieves the statistics of the players in the match.
+        """
         print('Pegando estatísticas dos jogadores do jogo...')
         if self.match_info['status'] != 'finished':
             return None
@@ -132,6 +174,15 @@ class Event:
                 self.players_statistics = players_statistics
 
     def get_importance_of_goals(self, shotmap_info):
+        """
+        Calculates the importance of goals in the shotmap.
+
+        Parameters:
+        - shotmap_info: The shotmap information.
+
+        Returns:
+        - The shotmap information with the importance of goals added.
+        """
         shot_goals = dict()
         for key, shot in shotmap_info.items():
             if shot['shotType'] == 'goal':
@@ -180,6 +231,9 @@ class Event:
         return shotmap_info
         
     def get_shotmap_event(self):
+        """
+        Retrieves the shotmap information of the match.
+        """
         print('Pegando informações do shotmap do jogo...')
         if self.match_info['status'] != 'finished':
             return None
@@ -202,6 +256,8 @@ class Event:
                     metrics = ['isHome','xg', 'shotType', 'xgot', 'goalMouthLocation', 'situation', 'time', 'addedTime', 'bodyPart',
                                'playerCoordinates', 'goalType']
                     for metric in metrics:
+                        # Process metric data
+                        pass
                         if metric not in shot:
                             if metric == 'addedTime':
                                 shot[metric] = 0
@@ -246,6 +302,9 @@ class Event:
 
 
     def get_goals_info(self):
+        """
+        Retrieves information about the goals scored in the match.
+        """
         shot_goals = dict()
         for key, shot in self.shotmap_info.items():
             if shot['shotType'] == 'goal':
@@ -293,6 +352,12 @@ class Event:
         }
 
     def save(self, mydb):
+        """
+        Saves the event to the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        """
+
         sql_check = "SELECT * FROM matches WHERE id = %s AND id_tournament = %s AND id_season = %s"
         val_check = (int(self.id), int(self.match_info['tournament_id']), int(self.match_info['season_id']))
         mycursor = mydb.cursor()

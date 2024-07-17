@@ -13,7 +13,34 @@ from SQLconfig.config_mysql import mydb
 
 
 class Tournament:
+    """
+    Represents a tournament.
+
+    Attributes:
+    - id (int): The ID of the tournament.
+    - year (int): The year of the tournament.
+    - has_new_events (bool): Indicates whether there are new events in the tournament.
+    - name (str): The name of the tournament.
+    - country (str): The country of the tournament.
+    - df_seasons (pd.DataFrame): The DataFrame containing the seasons of the tournament.
+    - season_id (str): The ID of the current season.
+    - season_info (dict): The information of the current season.
+    - teams (dict): The teams participating in the tournament.
+    - standing (pd.DataFrame): The standings of the tournament.
+    - jogos (dict): The events of the tournament.
+    - players (dict): The players participating in the tournament.
+    - referees (dict): The referees of the tournament.
+    - managers (dict): The managers of the teams in the tournament.
+    """
+
     def __init__(self, id, year):
+        """
+        Initializes a Tournament object.
+
+        Parameters:
+        - id (int): The ID of the tournament.
+        - year (int): The year of the tournament.
+        """
         self.id = id
         self.year = year
         self.has_new_events = False
@@ -21,18 +48,30 @@ class Tournament:
         self.get_tournament_seasons()
 
     def get_tournament(self):
+        """
+        Retrieves the information of the tournament.
+        """
         url = get_api_url() + 'unique-tournament/{id}'.format(id=self.id)
         data_tournament = read_api_sofascore(url, selenium=False)
         self.name = data_tournament['uniqueTournament']['name']
         self.country = data_tournament['uniqueTournament']['category']['country']['name']
     
     def get_tournament_seasons(self):
+        """
+        Retrieves the seasons of the tournament.
+        """
         url = get_api_url() + f'unique-tournament/{self.id}/seasons/'
         seasons = read_api_sofascore(url, selenium=False)
         df_seasons = pd.DataFrame(seasons['seasons'])
         self.df_seasons = df_seasons[['name', 'year', 'id']]
     
     def get_season_by_year(self, year):
+        """
+        Retrieves the season ID based on the given year.
+
+        Parameters:
+        - year (int): The year of the season.
+        """
         try:
             self.season_id = self.df_seasons[self.df_seasons['year'] == str(year)]['id'].values[0]
         except IndexError:
@@ -41,6 +80,9 @@ class Tournament:
         self.season_info = read_api_sofascore(url, selenium=False)
 
     def get_teams_tournament(self):
+        """
+        Retrieves the teams participating in the tournament.
+        """
         teams = dict()
         # read teams already saved in the database
         sql_check_saved = f"SELECT id FROM team WHERE id_tournament = %s AND id_season = %s"
@@ -70,6 +112,9 @@ class Tournament:
         self.teams = teams
     
     def get_standings(self):
+        """
+        Retrieves the standings of the tournament.
+        """
         url = get_api_url() + f'unique-tournament/{self.id}/season/{self.season_id}/standings/total'
         standings = read_api_sofascore(url)
         standings = standings['standings'][0]['rows']
@@ -92,12 +137,24 @@ class Tournament:
         self.standing = statitics_table.sort_values('position', ascending=True)
 
     def get_events_rodada(self, rodada):
+        """
+        Retrieves the events of a specific round in the tournament.
+
+        Parameters:
+        - rodada (int): The round number.
+        
+        Returns:
+        - jogos_rodada (list): The events of the round.
+        """
         url = get_api_url() + f'unique-tournament/{self.id}/season/{self.season_id}/events/round/{rodada}'
         events = read_api_sofascore(url, selenium=False)
         jogos_rodada = events['events']
         return jogos_rodada
     
     def get_events(self):
+        """
+        Retrieves the events of the tournament.
+        """
         sql_check_saved = f"SELECT id FROM matches WHERE id_tournament = %s AND id_season = %s AND status = 'finished'"
         val_check_saved = (int(self.id), int(self.season_id))
         mycursor = mydb.cursor()
@@ -125,12 +182,21 @@ class Tournament:
         self.jogos = jogos
 
     def get_table_of_events(self):
+        """
+        Retrieves the table of events in the tournament.
+
+        Returns:
+        - table (pd.DataFrame): The table of events.
+        """
         table = pd.DataFrame()
         for key, value in self.jogos.items():
             table = pd.concat([table, pd.DataFrame(value.match_info, index=[0])])
         return table 
 
     def get_players(self):
+        """
+        Retrieves the players participating in the tournament.
+        """
         distinct_player_ids = set()
         for id_jogo, jogo in self.jogos.items():
             if jogo.match_info['status'] == 'finished':
@@ -157,6 +223,9 @@ class Tournament:
         self.players = players
     
     def get_referees(self):
+        """
+        Retrieves the referees of the tournament.
+        """
         id_referees = set()
         for id_jogo, jogo in self.jogos.items():
             if jogo.match_info['status'] == 'finished':
@@ -182,6 +251,9 @@ class Tournament:
         self.referees = referees
 
     def get_managers(self):
+        """
+        Retrieves the managers of the teams in the tournament.
+        """
         id_managers = set()
         for id_jogo, jogo in self.jogos.items():
             if jogo.match_info['status'] == 'finished':
@@ -209,6 +281,9 @@ class Tournament:
         self.managers = managers
     
     def run(self):
+        """
+        Runs the tournament analysis process.
+        """
         print('Pegando informações do torneio...')
         self.get_season_by_year(self.year)
         self.get_teams_tournament()
@@ -224,6 +299,13 @@ class Tournament:
         self.get_referees()
 
     def get_id_db_tournament(self, mydb):
+        """
+        Retrieves the ID of the tournament from the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        Returns:
+        - id_tournament (int): The ID of the tournament.
+        """
         sql_check_saved = f"SELECT id FROM tournament WHERE tournament_id = %s AND season_id = %s"
         val_check_saved = (int(self.id), int(self.season_id))
         mycursor = mydb.cursor()
@@ -236,6 +318,11 @@ class Tournament:
             return id_tournament[0][0]
 
     def save(self, mydb):
+        """
+        Saves the tournament information to the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        """
         id_tournament = self.get_id_db_tournament(mydb)
         if id_tournament == None:
             mycursor = mydb.cursor()
@@ -247,6 +334,11 @@ class Tournament:
         self.id_tournament_db = id_tournament
     
     def save_standing(self, mydb):
+        """
+        Saves the standings of the tournament to the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        """
         sql_check_exists = f"SELECT * FROM standing WHERE id_tournament = %s AND id_season = %s"
         val_check_exists = (int(self.id), int(self.season_id))
         mycursor = mydb.cursor()
@@ -266,6 +358,11 @@ class Tournament:
             mycursor.close()
             
     def save_teams_stats(self, mydb):
+        """
+        Saves the teams statistics to the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        """
         sql = "INSERT INTO teams_stats_match (id_match, id_team, field, period, accurateCross, accurateLongBalls, accuratePasses, accurateThroughBall, aerialDuelsPercentage, ballPossession, ballRecovery, bigChanceCreated, bigChanceMissed, bigChanceScored, blockedScoringAttempt, cornerKicks, dispossessed, diveSaves, dribblesPercentage, duelWonPercent, errorsLeadToGoal, errorsLeadToShot, expectedGoals, finalThirdEntries, finalThirdPhaseStatistic, fouledFinalThird, fouls, freeKicks, goalKicks, goalkeeperSaves, goals, goalsPrevented, groundDuelsPercentage, highClaims, hitWoodwork, interceptionWon, offsides, passes, punches, redCards, shotsOffGoal, shotsOnGoal, throwIns, totalClearance, totalShotsInsideBox, totalShotsOnGoal, totalShotsOutsideBox, totalTackle, touchesInOppBox, wonTacklePercent, yellowCards) VALUES\
             (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         val = list()
@@ -298,6 +395,11 @@ class Tournament:
         mycursor.close()
     
     def save_players_stats(self, mydb):
+        """
+        Saves the players statistics to the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        """
         sql = "INSERT INTO players_stats_match (id_match, id_team, id_player, field, accurateCross, accurateKeeperSweeper, accurateLongBalls, accuratePass, aerialLost, aerialWon, bigChanceCreated, bigChanceMissed, blockedScoringAttempt, challengeLost, clearanceOffLine, dispossessed, duelLost, duelWon, errorLeadToAGoal, errorLeadToAShot, expectedAssists, expectedGoals, fouls, goalAssist, goals, goalsPrevented, goodHighClaim, hitWoodwork, interceptionWon, keyPass, lastManTackle, minutesPlayed, onTargetScoringAttempt, outfielderBlock, ownGoals, penaltyConceded, penaltyMiss, penaltySave, penaltyWon, possessionLostCtrl, punches, rating, savedShotsFromInsideTheBox, saves, shotOffTarget, totalClearance, totalContest, totalCross, totalKeeperSweeper, totalLongBalls, totalOffside, totalPass, totalTackle, touches, wasFouled, wonContest) VALUES\
                 (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s, %s, %s)"
         val = list()
@@ -333,6 +435,12 @@ class Tournament:
         mycursor.close()
     
     def save_shotmap_match(self, mydb):
+        """
+        Saves the shotmap information to the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+
+        """
         sql = "INSERT INTO shots_match (id_match, id_team, id_player, field, shotType, goalType, xg, xgot, situation, bodypart, playerCoordinates, inBox, goalMouthLocation, time, time_seconds, period, score_after_goal, goal_to_ahead_score, goal_to_open_score, goal_to_tie, goal_winning, goal_to_save_lose) VALUES\
                 (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         val = list()
@@ -364,6 +472,11 @@ class Tournament:
         mycursor.close()
         
     def save_goals(self, mydb):
+        """
+        Saves the goals information to the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        """
         sql = "INSERT INTO goal_match (id_match, scoreHome, scoreAway, scoreHome1st, scoreAway1st, scoreHome2nd, scoreAway2nd)\
             VALUES (%s, %s, %s, %s, %s, %s, %s)"
         val = list()
@@ -379,6 +492,11 @@ class Tournament:
         
 
     def save_all(self, mydb):
+        """
+        Saves all the tournament information to the database.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        """
         print('Salvando informações do torneio...')
         self.save(mydb)
         print('Salvando informações dos times...')

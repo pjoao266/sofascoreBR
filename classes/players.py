@@ -6,9 +6,18 @@ from SQLconfig.config_mysql import mydb
 
 class Player:
     def __init__(self, id):
+        """
+        Initialize a Player object.
+
+        Parameters:
+        - id (int): The ID of the player.
+        """
         self.id = id
 
     def get_info_players(self):
+        """
+        Get information about the player from the API and store it in the Player object.
+        """
         url = get_api_url() + f"player/{self.id}"
         dados_players = read_api_sofascore(url, selenium=False)
         dados_players = dados_players['player']
@@ -42,15 +51,18 @@ class Player:
             self.preferredFoot = None
 
     def get_player_position(self):
+        """
+        Get the player's position from the API and store it in the Player object.
+        """
         dict_rename_positions ={
             'ST': ['CA', 'ATA'],
             'LW': ['PE', 'ATA'],
             'RW': ['PD', 'ATA'],
-            'AM': ['MA', 'MEI'],
-            'ML': ['ME', 'MEI'],
-            'MR': ['MD', 'MEI'],
-            'CM': ['MC', 'MEI'],
-            'MC': ['MC', 'MEI'],
+            'AM': ['MEI', 'MC'],
+            'ML': ['ME', 'MC'],
+            'MR': ['MD', 'MC'],
+            'CM': ['MC', 'MC'],
+            'MC': ['MC', 'MC'],
             'DM': ['VOL', 'VOL'],
             'DC': ['ZAG', 'ZAG'],
             'DR': ['LD', 'LAT'],
@@ -87,6 +99,12 @@ class Player:
         self.all_positions = all_positions
 
     def save(self, mydb):
+        """
+        Save the player's information to the database.
+
+        Parameters:
+        - mydb: The MySQL database connection.
+        """
         mycursor = mydb.cursor()
         sql = "INSERT INTO player (id, id_team, name, shortName, position, grand_position, all_positions, height, jerseyNumber, birthDate, preferredFoot, image) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         vars_int = ['id', 'teamId', 'height', 'jerseyNumber']
@@ -100,4 +118,7 @@ class Player:
         mycursor.close()
         
     def __str__(self):
+        """
+        Return a string representation of the Player object.
+        """
         return f"Player: {self.shortName} - ID: {self.id} - Team ID: {self.teamId} - Position: {self.position}"

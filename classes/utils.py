@@ -1,3 +1,4 @@
+
 API_SCANTRACK_URL = 'https://api.sofascore.com/api/v1/'
 PATH = "E:/Programações/sofascoreBR/"
 import requests # Import the requests module
@@ -14,17 +15,31 @@ from datetime import datetime
 from git import Repo
 
 def get_api_url():
+    """
+    Returns the API URL for the Scantrack service.
+    """
     return API_SCANTRACK_URL
 
-def read_api_sofascore(url, selenium = True, error_stop = False):
+def read_api_sofascore(url, selenium=True, error_stop=False):
+    """
+    Reads data from the SofaScore API.
+
+    Args:
+        url (str): The URL of the API endpoint.
+        selenium (bool, optional): Whether to use Selenium for scraping. Defaults to True.
+        error_stop (bool, optional): Whether to stop execution on error. Defaults to False.
+
+    Returns:
+        dict: The response JSON data.
+    """
     if selenium:
         options = webdriver.ChromeOptions()     
         options.headless = True
-        options.add_argument("--remote-debugging-port=9222")  # this
+        options.add_argument("--remote-debugging-port=9222")
         options.add_experimental_option('excludeSwitches', ['enable-logging'])
         options.add_argument(r"user-data-dir=.\cookies\\test") 
 
-        driver = webdriver.Chrome(ChromeDriverManager().install(), options= options)
+        driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
         driver.implicitly_wait(20)
         driver.get(url)
         try:
@@ -44,8 +59,11 @@ def read_api_sofascore(url, selenium = True, error_stop = False):
     return response_json
 
 def git_push():
+    """
+    Pushes the code changes to the Git repository.
+    """
     try:
-        PATH_OF_GIT_REPO = PATH + '.git/'  # make sure .git folder is properly configured
+        PATH_OF_GIT_REPO = PATH + '.git/'
         DATE_AND_HOUR = datetime.now().strftime("%d/%m %Hh")
         COMMIT_MESSAGE = 'Atualizações dados ' + DATE_AND_HOUR
         repo = Repo(PATH_OF_GIT_REPO)
@@ -54,9 +72,15 @@ def git_push():
         origin = repo.remote(name='origin')
         origin.push()
     except:
-        print('Some error occured while pushing the code')    
+        print('Some error occurred while pushing the code')    
 
 def db_to_excel(mydb):
+    """
+    Converts database tables to Excel files.
+
+    Args:
+        mydb: The database connection object.
+    """
     mycursor = mydb.cursor()
     sql_show_tables = "SHOW TABLES"
     mycursor.execute(sql_show_tables)
@@ -72,6 +96,17 @@ def db_to_excel(mydb):
 
 
 def get_bin_image(id, type):
+    """
+    Retrieves the binary image data for a given ID and type.
+
+    Args:
+        id: The ID of the image.
+        type: The type of the image.
+
+    Returns:
+        bytes: The binary image data.
+        None: If the image is not found.
+    """
     url = get_api_url() + f"/{type}/{id}/image"
     response = requests.get(url)
     if response.status_code == 200:
