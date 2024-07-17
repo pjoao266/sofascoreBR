@@ -17,14 +17,17 @@ CREATE TABLE tournament (
     season_id INT,
     country VARCHAR(255),
     year INT,
-    name VARCHAR(255)
+    name VARCHAR(255),
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE team (
     id INTEGER,
     name TEXT,
     id_tournament INTEGER REFERENCES tournament(tournament_id),
-    id_season INTEGER REFERENCES tournament(season_id)
+    id_season INTEGER REFERENCES tournament(season_id),
+    image LONGBLOB,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE player (
@@ -33,21 +36,29 @@ CREATE TABLE player (
     name VARCHAR(255),
     shortName VARCHAR(255),
     position VARCHAR(255),
+    grand_position VARCHAR(255),
+    all_positions VARCHAR(255),
     height INT,
     jerseyNumber INT,
     birthDate DATE,
-    preferredFoot VARCHAR(255)
+    preferredFoot VARCHAR(255),
+    image LONGBLOB,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE manager (
     id INT PRIMARY KEY,
     id_team INT REFERENCES team(id),
-    name VARCHAR(255)
+    name VARCHAR(255),
+    image LONGBLOB,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE referee (
     id INT PRIMARY KEY,
-    name VARCHAR(255)
+    name VARCHAR(255),
+    image LONGBLOB,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS matches (
@@ -65,7 +76,8 @@ CREATE TABLE IF NOT EXISTS matches (
     city VARCHAR(255),
     stadium VARCHAR(255),
     home_goals INT,
-    away_goals INT
+    away_goals INT,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE standing (
@@ -75,7 +87,8 @@ CREATE TABLE standing (
     id_team INT REFERENCES team(id),
     position INT,
     points INT,
-    matches INT
+    matches INT,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS goal_match (
@@ -86,7 +99,8 @@ CREATE TABLE IF NOT EXISTS goal_match (
     scoreHome1st INT,
     scoreAway1st INT,
     scoreHome2nd INT,
-    scoreAway2nd INT
+    scoreAway2nd INT,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS teams_stats_match (
@@ -141,7 +155,8 @@ CREATE TABLE IF NOT EXISTS teams_stats_match (
     totalTackle FLOAT,
     touchesInOppBox FLOAT,
     wonTacklePercent FLOAT,
-    yellowCards FLOAT
+    yellowCards FLOAT,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
 CREATE TABLE players_stats_match (
@@ -201,7 +216,8 @@ CREATE TABLE players_stats_match (
     totalTackle FLOAT,
     touches FLOAT,
     wasFouled FLOAT,
-    wonContest FLOAT
+    wonContest FLOAT,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS shots_match (
@@ -227,5 +243,6 @@ CREATE TABLE IF NOT EXISTS shots_match (
     goal_to_open_score BOOLEAN,
     goal_to_tie BOOLEAN,
     goal_winning BOOLEAN,
-    goal_to_save_lose BOOLEAN
+    goal_to_save_lose BOOLEAN,
+    dt_insertion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

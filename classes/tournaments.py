@@ -151,6 +151,7 @@ class Tournament:
                 print(f'Pegando informações do jogador {id_player}... - {cont}/{len_distinct_player_ids}')
                 player = Player(id_player)
                 player.get_info_players()
+                player.get_player_position()
                 players[id_player] = player
                 cont += 1
         self.players = players

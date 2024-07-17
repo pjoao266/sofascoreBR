@@ -69,3 +69,12 @@ def db_to_excel(mydb):
         df = pd.DataFrame(result, columns=mycursor.column_names)
         excel_file = PATH + f"/data/{table}.xlsx"
         df.to_excel(excel_file, index=False)
+
+
+def get_bin_image(id, type):
+    url = get_api_url() + f"/{type}/{id}/image"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.content
+    elif response.status_code == 404:
+        return None

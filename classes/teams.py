@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../")
 from datetime import datetime
-from classes.utils import get_api_url, read_api_sofascore
+from classes.utils import get_api_url, read_api_sofascore, get_bin_image
 from SQLconfig.config_mysql import mydb
 
 class Team:
@@ -27,8 +27,9 @@ class Team:
         myresult = mycursor.fetchall()
         mycursor.close()
         if len(myresult) <= 0:
-            sql = f"INSERT INTO team (id, name, id_tournament, id_season) VALUES (%s, %s, %s, %s)"
-            val = (int(self.id), self.name, int(self.tournament_id), int(self.season_id))
+            sql = f"INSERT INTO team (id, name, id_tournament, id_season, image) VALUES (%s, %s, %s, %s, %s)"
+            image = get_bin_image(self.id, 'team')
+            val = (int(self.id), self.name, int(self.tournament_id), int(self.season_id), image)
             mycursor = mydb.cursor()
             mycursor.execute(sql, val)
             mydb.commit()

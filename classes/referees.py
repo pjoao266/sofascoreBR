@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../")
 from datetime import datetime
-from classes.utils import get_api_url, read_api_sofascore
+from classes.utils import get_api_url, read_api_sofascore, get_bin_image
 from SQLconfig.config_mysql import mydb
 
 class Referee:
@@ -14,8 +14,9 @@ class Referee:
         self.name = referee['referee']['name']
 
     def save(self, mydb):
-        sql = f'INSERT INTO referee (id, name) VALUES (%s, %s)'
+        sql = f'INSERT INTO referee (id, name, image) VALUES (%s, %s, %s)'
         val = (int(self.id), self.name)
+        image = get_bin_image(self.id, 'referee')
         mycursor = mydb.cursor()
         mycursor.execute(sql, val)
         mydb.commit()

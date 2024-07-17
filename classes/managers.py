@@ -1,7 +1,7 @@
 import sys
 sys.path.append("../")
 from datetime import datetime
-from classes.utils import get_api_url, read_api_sofascore
+from classes.utils import get_api_url, read_api_sofascore, get_bin_image
 from SQLconfig.config_mysql import mydb
 
 class Manager:
@@ -19,12 +19,13 @@ class Manager:
             self.team_id = None
             
     def save(self, mydb):
-        sql = f'INSERT INTO manager (id, name, id_team) VALUES (%s, %s, %s)'
+        sql = 'INSERT INTO manager (id, name, id_team, image) VALUES (%s, %s, %s, %s)'
         vars_int = ['id', 'team_id']
         for var in vars_int:
             if self.__dict__[var] != None:
                 self.__dict__[var] = int(self.__dict__[var])
-        val = (self.id, self.name, self.team_id)
+        image = get_bin_image(self.id, 'manager')
+        val = (self.id, self.name, self.team_id, image)
         mycursor = mydb.cursor()
         mycursor.execute(sql, val)
         mydb.commit()
