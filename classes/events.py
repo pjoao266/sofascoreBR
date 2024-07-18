@@ -87,7 +87,9 @@ class Event:
             self.match_info['manager_home_id'] = self.event['homeTeam']['manager']['id']
             self.match_info['manager_away_id'] = self.event['awayTeam']['manager']['id']
             
-        self.match_info['date'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%d/%m/%Y')
+        self.match_info['date'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%d/%m/%Y H:%M:%S')
+        self.match_info['hour'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%H:%M')
+        self.match_info['day_of_week'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%A')
         self.match_info['season_id'] = self.season_id
         self.match_info['tournament_id'] = self.tournament_id
         self.match_info['city'] = self.event['venue']['city']['name']
@@ -365,10 +367,10 @@ class Event:
         myresult = mycursor.fetchall()
         mycursor.close()
         if len(myresult) > 0:
-            sql = "UPDATE matches SET id_team_home = %s, id_team_away = %s, rodada = %s, status = %s, referee_id = %s, manager_home_id = %s, manager_away_id = %s, date = %s, city = %s, stadium = %s, home_goals = %s, away_goals = %s, dt_insertion = %s WHERE id = %s AND id_tournament = %s AND id_season = %s"
+            sql = "UPDATE matches SET id_team_home = %s, id_team_away = %s, rodada = %s, status = %s, referee_id = %s, manager_home_id = %s, manager_away_id = %s, date = %s, hour = %s, day_of_week = %s, city = %s, stadium = %s, home_goals = %s, away_goals = %s, dt_insertion = %s WHERE id = %s AND id_tournament = %s AND id_season = %s"
         else:
-            sql = "INSERT INTO matches (id, id_team_home, id_team_away, id_tournament, id_season, rodada, status, referee_id, manager_home_id, manager_away_id, date, city, stadium, home_goals, away_goals)\
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            sql = "INSERT INTO matches (id, id_team_home, id_team_away, id_tournament, id_season, rodada, status, referee_id, manager_home_id, manager_away_id, date, hour, day_of_week, city, stadium, home_goals, away_goals)\
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         
         int_vars = ['id', 'id_team_home', 'id_team_away', 'id_tournament', 'id_season',
         'rodada', 'referee_id', 'manager_home_id', 'manager_away_id', 'score_home', 'score_away']
@@ -381,14 +383,16 @@ class Event:
         if len(myresult) > 0:
             val = (self.match_info['home_id'], self.match_info['away_id'], self.match_info['round'], self.match_info['status'], self.match_info['referee_id'],
                 self.match_info['manager_home_id'], self.match_info['manager_away_id'],
-                date_info, self.match_info['city'], self.match_info['stadium'],
+                date_info, self.match_info['hour'], self.match_info['day_of_week'],
+                self.match_info['city'], self.match_info['stadium'],
                 self.match_info['score_home'], self.match_info['score_away'], datetime.now(),
                 self.id, self.match_info['tournament_id'], self.match_info['season_id'])
         else:
             val = (self.id, self.match_info['home_id'], self.match_info['away_id'], self.match_info['tournament_id'], self.match_info['season_id'],
                 self.match_info['round'], self.match_info['status'], self.match_info['referee_id'],
                 self.match_info['manager_home_id'], self.match_info['manager_away_id'],
-                date_info, self.match_info['city'], self.match_info['stadium'],
+                date_info, self.match_info['hour'], self.match_info['day_of_week'],
+                self.match_info['city'], self.match_info['stadium'],
                 self.match_info['score_home'], self.match_info['score_away'])
         mycursor = mydb.cursor()
         mycursor.execute(sql, val)

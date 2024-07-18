@@ -1,3 +1,4 @@
+
 DROP TABLE IF EXISTS tournament;
 DROP TABLE IF EXISTS team;
 DROP TABLE IF EXISTS player;
@@ -73,6 +74,8 @@ CREATE TABLE IF NOT EXISTS matches (
     manager_home_id INT,
     manager_away_id INT,
     date DATE,
+    hour TIME
+    day_of_week VARCHAR(255),
     city VARCHAR(255),
     stadium VARCHAR(255),
     home_goals INT,
