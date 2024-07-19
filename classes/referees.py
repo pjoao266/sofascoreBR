@@ -38,8 +38,8 @@ class Referee:
             mydb: The MySQL database connection object.
         """
         sql = f'INSERT INTO referee (id, name, image) VALUES (%s, %s, %s)'
-        val = (int(self.id), self.name)
         image = get_bin_image(self.id, 'referee')
+        val = (int(self.id), self.name, image)
         mycursor = mydb.cursor()
         mycursor.execute(sql, val)
         mydb.commit()

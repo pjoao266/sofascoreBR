@@ -108,9 +108,15 @@ class Player:
         mycursor = mydb.cursor()
         sql = "INSERT INTO player (id, id_team, name, shortName, position, grand_position, all_positions, height, jerseyNumber, birthDate, preferredFoot, image) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         vars_int = ['id', 'teamId', 'height', 'jerseyNumber']
-        for var in vars_int:
-            if self.__dict__[var] != None:
-                self.__dict__[var] = int(self.__dict__[var])
+        vars_tot = ['id', 'teamId', 'name', 'shortName', 'position', 'grand_position', 'all_positions', 'height', 'jerseyNumber', 'date_of_birth', 'preferredFoot']
+        for var in vars_tot:
+            if var in self.__dict__:
+                if var in vars_int and self.__dict__[var] != None:
+                    self.__dict__[var] = int(self.__dict__[var])
+                else:
+                    self.__dict__[var] = self.__dict__[var]
+            else:
+                self.__dict__[var] = None
         image = get_bin_image(self.id, 'player')
         val = (self.id, self.teamId, self.name, self.shortName, self.position, self.grand_position, self.all_positions, self.height, self.jerseyNumber, self.date_of_birth, self.preferredFoot, image)
         mycursor.execute(sql, val)

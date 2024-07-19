@@ -49,7 +49,7 @@ class Event:
         Retrieves the event data from the API.
         """
         url = get_api_url() + f'event/{self.id}'
-        event = read_api_sofascore(url, selenium=False)
+        event = read_api_sofascore(url, selenium=True)
         self.event = event['event']
         self.season_id = self.event['season']['id']
         self.tournament_id = self.event['tournament']['uniqueTournament']['id']
@@ -84,9 +84,15 @@ class Event:
             self.match_info['manager_away_id'] = None
         else:
             self.match_info['referee_id'] = self.event['referee']['id']
-            self.match_info['manager_home_id'] = self.event['homeTeam']['manager']['id']
-            self.match_info['manager_away_id'] = self.event['awayTeam']['manager']['id']
-            
+            if 'manager' not in self.event['homeTeam'].keys():
+                self.match_info['manager_home_id'] = None
+            else:
+                self.match_info['manager_home_id'] = self.event['homeTeam']['manager']['id']
+            if 'manager' not in self.event['awayTeam'].keys():
+                self.match_info['manager_away_id'] = None
+            else:
+                 self.match_info['manager_away_id'] = self.event['awayTeam']['manager']['id']
+
         self.match_info['date'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%d/%m/%Y')
         self.match_info['hour'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%H:%M')
         self.match_info['day_of_week'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%A')

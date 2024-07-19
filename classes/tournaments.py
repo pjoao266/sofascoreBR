@@ -274,10 +274,11 @@ class Tournament:
         n_managers = len(id_managers_not_saved)
         for id_manager in id_managers_not_saved:
             cont += 1
-            print(f'Pegando informações do manager {id_manager}... - {cont}/{n_managers}')
-            manager = Manager(id_manager)
-            manager.get_info_manager()
-            managers[id_manager] = manager
+            if id_manager != None:
+                print(f'Pegando informações do manager {id_manager}... - {cont}/{n_managers}')
+                manager = Manager(id_manager)
+                manager.get_info_manager()
+                managers[id_manager] = manager
         self.managers = managers
     
     def run(self):
