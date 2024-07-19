@@ -490,7 +490,68 @@ class Tournament:
         mycursor.executemany(sql, val)
         mydb.commit()
         mycursor.close()
-        
+    def fix_problem_in_managers(self, mydb):
+        """
+        Fixes the problem in the managers information.
+        Parameters:
+        - mydb: The MySQL database connection object.
+        """
+
+        sql = "SELECT id, id_team_home, id_team_away, manager_home_id, manager_away_id, date FROM matches WHERE status = 'finished' AND (manager_home_id IS NULL OR manager_away_id IS NULL)"
+        mycursor = mydb.cursor()
+        mycursor.execute(sql)
+        matches = mycursor.fetchall()
+        mycursor.close()
+        infos_null = pd.DataFrame()
+        for match in matches:
+            manager_home_null = False
+            manager_away_null = False
+            if match[3] == None:
+                manager_home_null = True
+            if match[4] == None:
+                manager_away_null = True
+            if manager_home_null:
+                infos = pd.DataFrame([(match[0], match[1],'home', match[5])], columns = ['id', 'id_team','field', 'date'])
+                infos_null = pd.concat([infos_null, infos])
+            if manager_away_null:
+                infos = pd.DataFrame([(match[0], match[2],'away', match[5])], columns = ['id', 'id_team','field', 'date'])
+                infos_null = pd.concat([infos_null, infos])
+
+        for i in range(infos_null.shape[0]):
+            info_null = infos_null.iloc[i]
+            sql = "SELECT id_team_home, id_team_away, date, manager_home_id, manager_away_id, id FROM matches WHERE id_team_home = %s OR id_team_away = %s"
+            val = (int(info_null['id_team']), int(info_null['id_team']))
+            mycursor = mydb.cursor()
+            mycursor.execute(sql, val)
+            matches = mycursor.fetchall()
+            matches = pd.DataFrame(matches, columns = ['id_team_home', 'id_team_away', 'date', 'manager_home_id', 'manager_away_id', 'id'])
+            matches.sort_values(by = 'date', inplace = True)
+            infos_dict = dict()
+            index_choose = -1
+            for j in range(matches.shape[0]):
+                match = matches.iloc[j]
+                if match[5] == info_null['id']:
+                    index_choose = j
+                if match[0] == info_null['id_team']:
+                    infos_dict[j] = match[3]
+                if match[1] == info_null['id_team']:
+                    infos_dict[j] = match[4]
+            mycursor.close()
+            if index_choose > 0 and index_choose < matches.shape[0] - 1:
+                if infos_dict[index_choose-1] == infos_dict[index_choose+1]:
+                    manager_id = int(infos_dict[index_choose-1])
+                else:
+                    manager_id = None
+                if manager_id != None:
+                    if info_null['field'] == 'home':
+                        sql = "UPDATE matches SET manager_home_id = %s WHERE id = %s;"
+                    else:
+                        sql = "UPDATE matches SET manager_away_id = %s WHERE id = %s;"
+                    val = (int(manager_id), int(info_null['id']))
+                    mycursor = mydb.cursor()
+                    mycursor.execute(sql, val)
+                    mydb.commit()
+                    mycursor.close()
 
     def save_all(self, mydb):
         """
@@ -525,6 +586,8 @@ class Tournament:
         self.save_shotmap_match(mydb)
         print('Salvando informações dos gols...')
         self.save_goals(mydb)
+        print('Corrigindo problemas nos managers...')
+        self.fix_problem_in_managers(mydb)
 
     def __str__(self) -> str:
         return f'Tournament: {self.name} - Country: {self.country} - Year: {self.year}'
