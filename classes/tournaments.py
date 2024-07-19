@@ -441,8 +441,8 @@ class Tournament:
         - mydb: The MySQL database connection object.
 
         """
-        sql = "INSERT INTO shots_match (id_match, id_team, id_player, field, shotType, goalType, xg, xgot, situation, bodypart, playerCoordinates, inBox, goalMouthLocation, time, time_seconds, period, score_after_goal, goal_to_ahead_score, goal_to_open_score, goal_to_tie, goal_winning, goal_to_save_lose) VALUES\
-                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        sql = "INSERT INTO shots_match (id_match, id_team, id_player, field, player_assist, players_participated, shotType, goalType, xg, xgot, situation, bodypart, playerCoordinates, inBox, goalMouthLocation, time, time_seconds, period, score_after_goal, goal_to_ahead_score, goal_to_open_score, goal_to_tie, goal_winning, goal_to_save_lose) VALUES\
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         val = list()
         for id_jogo, jogo in self.jogos.items():
             if 'shotmap_info' in jogo.__dict__:
@@ -452,9 +452,9 @@ class Tournament:
                     else:
                         field = 'away'
                     val_i = [jogo.id, shot['id_team'], shot['id'], field]
-                    vars = ['shotType', 'goalType', 'xg', 'xgot', 'situation', 'bodypart', 'playerCoordinates', 'inBox', 'goalMouthLocation', 'time', 'time_seconds', 'period', 'score_after_goal', 'goal_to_ahead_score', 'goal_to_open_score', 'goal_to_tie', 'goal_winning', 'goal_to_save_lose']
-                    vars_float_or_int = ['xg', 'xgot', 'time', 'time_seconds', 'score_after_goal']
-                    vars_coordinates = ['playerCoordinates']
+                    vars = ['player_assist', 'players_participated', 'shotType', 'goalType', 'xg', 'xgot', 'situation', 'bodypart', 'playerCoordinates', 'inBox', 'goalMouthLocation', 'time', 'time_seconds', 'period', 'score_after_goal', 'goal_to_ahead_score', 'goal_to_open_score', 'goal_to_tie', 'goal_winning', 'goal_to_save_lose']
+                    vars_float_or_int = ['player_assist','xg', 'xgot', 'time', 'time_seconds', 'score_after_goal']
+                    vars_coordinates = ['playerCoordinates', 'players_participated']
                     for var in vars:
                         if var in shot.keys() and shot[var] != None:
                             if var in vars_float_or_int:

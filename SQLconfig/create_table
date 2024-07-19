@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS matches (
     manager_home_id INT,
     manager_away_id INT,
     date DATE,
-    hour TIME
+    hour VARCHAR(255),
     day_of_week VARCHAR(255),
     city VARCHAR(255),
     stadium VARCHAR(255),
@@ -228,6 +228,8 @@ CREATE TABLE IF NOT EXISTS shots_match (
     id_match INT REFERENCES matches(id),
     id_team INT REFERENCES team(id),
     id_player INT REFERENCES player(id),
+    player_assist INT REFERENCES player(id),
+    players_participated TEXT,
     field TEXT,
     shotType TEXT,
     goalType TEXT,

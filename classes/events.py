@@ -87,7 +87,7 @@ class Event:
             self.match_info['manager_home_id'] = self.event['homeTeam']['manager']['id']
             self.match_info['manager_away_id'] = self.event['awayTeam']['manager']['id']
             
-        self.match_info['date'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%d/%m/%Y H:%M:%S')
+        self.match_info['date'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%d/%m/%Y')
         self.match_info['hour'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%H:%M')
         self.match_info['day_of_week'] = datetime.fromtimestamp(self.event['startTimestamp']).strftime('%A')
         self.match_info['season_id'] = self.season_id
@@ -175,6 +175,38 @@ class Event:
                         players_statistics[player_i['id']] = player_i
                 self.players_statistics = players_statistics
 
+    def get_participations_goals(self):
+        url = get_api_url() + "event/" + str(self.id) + "/incidents"
+        incidents = read_api_sofascore(url, selenium=True, error_stop = False)['incidents']
+        goals = [incident for incident in incidents if incident['incidentType'] == 'goal']
+        depara_idjoin_idshot = dict()
+        for key, goal in self.shotmap_info.items():
+            if goal['shotType'] == 'goal':
+                depara_idjoin_idshot[goal['id_join']] = key
+
+        for goal in goals:
+            id_join = str(self.id) + "_" + str(goal['homeScore']) + "_" + str(goal['awayScore'])
+            players_participated = dict()
+            if 'footballPassingNetworkAction' in goal:
+                participations = goal['footballPassingNetworkAction']
+                n_participacoes = len(participations) - 1
+                for participation in participations:
+                    if participation['eventType'] !='goal':
+                        id_player = participation['player']['id']
+                        players_participated[id_player] = str(n_participacoes)
+                        n_participacoes -= 1
+            else:
+                players_participated = None
+
+            if 'assist1' in goal:
+                player_assist = goal['assist1']['id']
+            else:
+                player_assist = None
+
+            id_shot = depara_idjoin_idshot[id_join]
+            self.shotmap_info[id_shot]['players_participated'] = players_participated
+            self.shotmap_info[id_shot]['player_assist'] = player_assist
+
     def get_importance_of_goals(self, shotmap_info):
         """
         Calculates the importance of goals in the shotmap.
@@ -190,7 +222,7 @@ class Event:
             if shot['shotType'] == 'goal':
                 shot_goals[key] = shot
                 shot_goals[key]['id_key'] = key
-        sorted_shot_goals = sorted(shot_goals.values(), key=lambda x: x['time_seconds'])
+        sorted_shot_goals = sorted(shot_goals.values(), key=lambda x: (x['period'],x['time_seconds']))
         n_gols = len(sorted_shot_goals)
         home_goals = 0
         away_goals = 0
@@ -222,14 +254,17 @@ class Event:
                 if cont_goals == n_gols:
                     goal_to_save_lose = True
             score_after_goal = goals_favor - goals_against
-
+            
+    
             shotmap_info[goals['id_key']]['score_after_goal'] = score_after_goal
             shotmap_info[goals['id_key']]['goal_to_ahead_score'] = goal_to_ahead_score
             shotmap_info[goals['id_key']]['goal_to_open_score'] = goal_to_open_score
             shotmap_info[goals['id_key']]['goal_to_tie'] = goal_to_tie
             shotmap_info[goals['id_key']]['goal_winning'] = goal_winning
             shotmap_info[goals['id_key']]['goal_to_save_lose'] = goal_to_save_lose
-            
+            shotmap_info[goals['id_key']]['goals_home'] = home_goals
+            shotmap_info[goals['id_key']]['goals_away'] = away_goals
+            shotmap_info[goals['id_key']]['id_join'] = str(self.id) + "_" + str(home_goals) + "_" + str(away_goals)
         return shotmap_info
         
     def get_shotmap_event(self):
@@ -301,6 +336,7 @@ class Event:
                                                 'time': time, 'time_seconds': time_seconds, 'period': period}
                 self.shotmap_info = self.get_importance_of_goals(shotmap_info)
                 self.get_goals_info()
+                self.get_participations_goals()
 
 
     def get_goals_info(self):
