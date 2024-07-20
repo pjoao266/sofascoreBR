@@ -1,0 +1,6 @@
+version: 2
+
+analysis:
+    - objective : Analisar dias e horário dos jogos do Brasileirão 2024
+    - analyst: Breno Valente
+    - squad: Qual(is) Squads essa analise atende?
