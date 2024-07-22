@@ -1,0 +1,6 @@
+version: 2
+
+analysis:
+    - objective : Ver se há uma relação entre a posse de bola e o número de faltas de um time nas partidas do Brasileirão 2024
+    - analyst: Breno Valente
+    - squad: Qual(is) Squads essa analise atende?
